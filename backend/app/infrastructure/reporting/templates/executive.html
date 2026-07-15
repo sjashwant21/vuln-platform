@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+
+{# ── Executive Summary ── #}
+<h2>Executive Summary</h2>
+<div class="info-box {% if report_data.health_score < 40 %}crit-box{% elif report_data.health_score < 70 %}warn-box{% else %}ok-box{% endif %}">
+  <strong>Overall Security Posture: {{ report_data.health_label }}</strong>
+  {% if report_data.health_delta is not none %}
+  &nbsp;
+  <span class="{{ 'val-ok' if report_data.health_delta >= 0 else 'val-critical' }}">
+    ({{ '+' if report_data.health_delta >= 0 else '' }}{{ report_data.health_delta }} pts vs last period)
+  </span>
+  {% endif %}
+</div>
+<p>{{ report_data.executive_summary }}</p>
+
+{# ── Health score + severity donut ── #}
+<div class="chart-row no-break">
+  <div class="chart-box">{{ charts.health_gauge|safe }}</div>
+  <div class="chart-box">{{ charts.severity_donut|safe }}</div>
+</div>
+
+{# ── Key metrics scorecard ── #}
+<h2>Key Metrics</h2>
+<div class="scorecard no-break">
+  <div class="score-card">
+    <div class="val val-accent">{{ report_data.health_score }}</div>
+    <div class="lbl">Security Score</div>
+  </div>
+  <div class="score-card">
+    <div class="val val-critical">{{ report_data.severity_distribution.critical }}</div>
+    <div class="lbl">Critical</div>
+  </div>
+  <div class="score-card">
+    <div class="val val-high">{{ report_data.severity_distribution.high }}</div>
+    <div class="lbl">High</div>
+  </div>
+  <div class="score-card">
+    <div class="val val-medium">{{ report_data.severity_distribution.medium }}</div>
+    <div class="lbl">Medium</div>
+  </div>
+  <div class="score-card">
+    <div class="val val-low">{{ report_data.severity_distribution.low }}</div>
+    <div class="lbl">Low</div>
+  </div>
+  <div class="score-card">
+    <div class="val val-accent">{{ report_data.total_assets }}</div>
+    <div class="lbl">Assets Scanned</div>
+  </div>
+</div>
+
+{# ── Risk trend ── #}
+{% if report_data.risk_trend %}
+<h2>Risk Trend</h2>
+<div class="chart-box no-break">{{ charts.risk_trend|safe }}</div>
+{% endif %}
+
+{# ── Top vulnerabilities ── #}
+<h2>Critical Findings Requiring Immediate Attention</h2>
+{% set urgent = report_data.vulns | selectattr('severity.value', 'in', ['critical', 'high']) | selectattr('status', 'equalto', 'open') | list %}
+{% if urgent %}
+<table class="no-break">
+  <thead>
+    <tr><th>CVE / Finding</th><th>Severity</th><th>Asset</th><th>Service</th><th>Exploit?</th></tr>
+  </thead>
+  <tbody>
+    {% for v in urgent[:10] %}
+    <tr>
+      <td><strong>{{ v.cve_id or v.title[:50] }}</strong><br><span style="color:#6B7280;font-size:8pt">{{ v.title[:70] }}</span></td>
+      <td><span class="badge badge-{{ v.severity.value }}">{{ v.severity.value }}</span></td>
+      <td>{{ v.asset_name[:20] }}</td>
+      <td>{{ v.service }}{% if v.port %}:{{ v.port }}{% endif %}</td>
+      <td>{{ '⚠ YES' if v.has_exploit else 'No' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if urgent|length > 10 %}
+<p style="color:#6B7280;font-size:8pt">... and {{ urgent|length - 10 }} more. See Technical Report for full details.</p>
+{% endif %}
+{% else %}
+<div class="info-box ok-box"><p>No critical or high severity open vulnerabilities found.</p></div>
+{% endif %}
+
+{# ── AI Recommendations ── #}
+{% if report_data.ai_recommendations %}
+<h2>AI-Powered Recommendations</h2>
+{% for rec in report_data.ai_recommendations[:5] %}
+<div class="rec-card no-break">
+  <div class="rec-header">
+    <div class="rec-num">{{ rec.priority }}</div>
+    <strong>{{ rec.title }}</strong>
+    <span class="effort-{{ rec.effort }}" style="margin-left:auto">
+      {{ rec.effort | replace('_', ' ') | upper }}
+    </span>
+  </div>
+  <p>{{ rec.description }}</p>
+  <p style="color:#6B7280;font-size:8pt"><strong>Expected impact:</strong> {{ rec.impact }}</p>
+</div>
+{% endfor %}
+{% endif %}
+
+{# ── Management summary ── #}
+{% if report_data.management_summary %}
+<div class="page-break"></div>
+<h2>Summary for Management</h2>
+<div class="info-box">{{ report_data.management_summary }}</div>
+{% endif %}
+
+{% endblock %}

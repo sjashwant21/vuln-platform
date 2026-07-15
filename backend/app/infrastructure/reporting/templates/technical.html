@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Technical Security Analysis</h2>
+<p>{{ report_data.executive_summary }}</p>
+
+{# ── Asset inventory ── #}
+<h2>Asset Inventory</h2>
+<div class="chart-row no-break">
+  <div class="chart-box" style="flex:2">{{ charts.asset_risk|safe }}</div>
+  <div class="chart-box" style="flex:1">{{ charts.severity_donut|safe }}</div>
+</div>
+<table>
+  <thead>
+    <tr>
+      <th>Host</th><th>IP</th><th>OS</th><th>Type</th>
+      <th>Criticality</th><th>Ports</th>
+      <th style="color:var(--critical)">C</th>
+      <th style="color:var(--high)">H</th>
+      <th style="color:var(--medium)">M</th>
+      <th style="color:var(--low)">L</th>
+      <th>Risk</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in report_data.assets %}
+    <tr>
+      <td><strong>{{ a.display_name[:22] }}</strong></td>
+      <td style="font-family:monospace;font-size:8pt">{{ a.ip_address }}</td>
+      <td style="font-size:8pt">{{ (a.os or 'Unknown')[:18] }}</td>
+      <td style="font-size:8pt">{{ a.asset_type }}</td>
+      <td><span class="badge badge-{{ a.criticality if a.criticality in ['critical','high','medium','low'] else 'info' }}">{{ a.criticality }}</span></td>
+      <td style="text-align:center">{{ a.open_ports }}</td>
+      <td style="text-align:center;color:var(--critical);font-weight:{% if a.vuln_critical > 0 %}700{% else %}400{% endif %}">{{ a.vuln_critical }}</td>
+      <td style="text-align:center;color:var(--high)">{{ a.vuln_high }}</td>
+      <td style="text-align:center;color:var(--medium)">{{ a.vuln_medium }}</td>
+      <td style="text-align:center;color:var(--low)">{{ a.vuln_low }}</td>
+      <td style="text-align:center"><strong>{{ "%.1f"|format(a.risk_score) }}</strong></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{# ── Vulnerability breakdown ── #}
+<div class="page-break"></div>
+<h2>Vulnerability Details</h2>
+<div class="chart-box no-break">{{ charts.asset_stacked|safe }}</div>
+
+{% for severity in ['critical', 'high', 'medium', 'low'] %}
+{% set sev_vulns = report_data.vulns | selectattr('severity.value', 'equalto', severity) | selectattr('status', 'equalto', 'open') | list %}
+{% if sev_vulns %}
+<h3 class="no-break">
+  <span class="badge badge-{{ severity }}">{{ severity|upper }}</span>
+  &nbsp;{{ sev_vulns|length }} finding{{ 's' if sev_vulns|length != 1 }}
+</h3>
+<table class="no-break">
+  <thead>
+    <tr><th>CVE</th><th>Title</th><th>CVSS</th><th>Asset</th><th>Service</th><th>Age</th><th>Exploit</th><th>Patch</th></tr>
+  </thead>
+  <tbody>
+    {% for v in sev_vulns %}
+    <tr>
+      <td style="font-family:monospace;font-size:8pt;white-space:nowrap">{{ v.cve_id or '—' }}</td>
+      <td>{{ v.title[:55] }}</td>
+      <td style="text-align:center"><strong>{{ "%.1f"|format(v.cvss_score) if v.cvss_score else '?' }}</strong></td>
+      <td style="font-size:8pt">{{ v.asset_name[:18] }}</td>
+      <td style="font-size:8pt">{{ v.service }}{% if v.port %}:{{ v.port }}{% endif %}</td>
+      <td style="text-align:center;font-size:8pt">{{ v.age_days }}d</td>
+      <td style="text-align:center">{{ '⚠' if v.has_exploit else '—' }}</td>
+      <td style="text-align:center">{{ '✓' if v.has_patch else '✗' }}</td>
+    </tr>
+    {% if v.remediation %}
+    <tr style="background:#FAFAFA">
+      <td></td>
+      <td colspan="7" style="font-size:8pt;color:#374151;padding:4px 10px 8px">
+        <strong>Remediation:</strong> {{ v.remediation[:200] }}
+      </td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endfor %}
+
+{# ── Risk trend ── #}
+{% if report_data.risk_trend %}
+<div class="page-break"></div>
+<h2>Risk Trend Analysis</h2>
+<div class="chart-box">{{ charts.risk_trend|safe }}</div>
+<table>
+  <thead><tr><th>Date</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th><th>Total</th><th>Health Score</th></tr></thead>
+  <tbody>
+    {% for p in report_data.risk_trend %}
+    <tr>
+      <td>{{ p.date.strftime('%Y-%m-%d') }}</td>
+      <td style="color:var(--critical)"><strong>{{ p.critical }}</strong></td>
+      <td style="color:var(--high)">{{ p.high }}</td>
+      <td style="color:var(--medium)">{{ p.medium }}</td>
+      <td style="color:var(--low)">{{ p.low }}</td>
+      <td>{{ p.total }}</td>
+      <td>{{ p.score }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{# ── AI recommendations ── #}
+{% if report_data.ai_recommendations %}
+<div class="page-break"></div>
+<h2>Remediation Recommendations</h2>
+{% for rec in report_data.ai_recommendations %}
+<div class="rec-card no-break">
+  <div class="rec-header">
+    <div class="rec-num">{{ rec.priority }}</div>
+    <strong>{{ rec.title }}</strong>
+    <span class="effort-{{ rec.effort }}" style="margin-left:auto">{{ rec.effort|replace('_',' ')|upper }}</span>
+  </div>
+  <p>{{ rec.description }}</p>
+  <p style="color:#6B7280;font-size:8pt"><strong>Impact:</strong> {{ rec.impact }}</p>
+  {% if rec.cve_refs %}
+  <p style="font-size:8pt;font-family:monospace;color:#6B7280">Addresses: {{ rec.cve_refs|join(', ') }}</p>
+  {% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
+{% endblock %}

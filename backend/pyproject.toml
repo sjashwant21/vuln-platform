@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "vuln-assessment-platform"
+version = "1.0.0"
+description = "AI-Powered Vulnerability Assessment Platform"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "W", "F", "I", "N", "UP", "S", "B", "A", "C4", "DTZ", "T20", "RET", "SIM"]
+ignore = ["S101"]  # allow assert in tests
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+env = [
+    "APP_ENV=test",
+    "DATABASE_URL=postgresql+asyncpg://test:test@localhost:5433/test_vulnassess",
+    "REDIS_URL=redis://localhost:6379/15",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["*/tests/*", "*/migrations/*"]
+
+# Runtime dependencies
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "pytest-env>=1.1.0",
+    "httpx>=0.26.0",
+    "factory-boy>=3.3.0",
+    "ruff>=0.1.9",
+    "mypy>=1.8.0",
+]

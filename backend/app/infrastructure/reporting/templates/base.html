@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ report_data.org_name }} — {{ report_data.report_type.value|title }} Report</title>
+<style>
+  /* ── Reset & base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  @page {
+    size: A4;
+    margin: 15mm 18mm 20mm 18mm;
+    @bottom-center {
+      content: "{{ report_data.org_name }} | Confidential | Page " counter(page) " of " counter(pages);
+      font-size: 8px; color: #9CA3AF;
+    }
+  }
+  body { font-family: "DejaVu Sans", "Helvetica Neue", Arial, sans-serif;
+         font-size: 10pt; color: #111827; background: white; line-height: 1.5; }
+  /* ── Colour tokens ── */
+  :root {
+    --critical: #DC2626; --high: #EA580C; --medium: #D97706;
+    --low: #2563EB;      --info: #6B7280; --ok: #16A34A;
+    --accent: #4F46E5;   --bg: #F9FAFB;  --border: #E5E7EB;
+  }
+  /* ── Typography ── */
+  h1 { font-size: 22pt; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+  h2 { font-size: 14pt; font-weight: 700; color: #1F2937;
+       border-bottom: 2px solid var(--accent); padding-bottom: 4px;
+       margin: 24px 0 12px; page-break-after: avoid; }
+  h3 { font-size: 11pt; font-weight: 600; color: #374151; margin: 16px 0 6px; }
+  p  { margin-bottom: 8px; }
+  /* ── Page breaks ── */
+  .page-break { page-break-before: always; }
+  .no-break   { page-break-inside: avoid; }
+  /* ── Cover page ── */
+  .cover {
+    display: flex; flex-direction: column; justify-content: center;
+    min-height: 240mm; padding: 20mm 0;
+  }
+  .cover-logo { font-size: 9pt; color: #6B7280; letter-spacing: 2px;
+                text-transform: uppercase; margin-bottom: 32px; }
+  .cover-type { font-size: 12pt; color: var(--accent); font-weight: 600;
+                text-transform: uppercase; letter-spacing: 3px; margin-bottom: 12px; }
+  .cover-meta { margin-top: 32px; color: #6B7280; font-size: 9pt; line-height: 2; }
+  .cover-divider { width: 60px; height: 4px; background: var(--accent);
+                   margin: 16px 0; border-radius: 2px; }
+  /* ── Scorecard ── */
+  .scorecard { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
+  .score-card {
+    flex: 1; min-width: 100px; padding: 12px 16px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; text-align: center;
+  }
+  .score-card .val { font-size: 22pt; font-weight: 700; line-height: 1; }
+  .score-card .lbl { font-size: 8pt; color: #6B7280; margin-top: 3px; }
+  .val-critical { color: var(--critical); }
+  .val-high     { color: var(--high); }
+  .val-medium   { color: var(--medium); }
+  .val-low      { color: var(--low); }
+  .val-ok       { color: var(--ok); }
+  .val-accent   { color: var(--accent); }
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 12px 0; }
+  th { background: #F3F4F6; font-weight: 600; text-align: left;
+       padding: 7px 10px; border-bottom: 2px solid var(--border); color: #374151; }
+  td { padding: 6px 10px; border-bottom: 1px solid #F3F4F6; vertical-align: top; }
+  tr:hover td { background: #FAFAFA; }
+  /* ── Severity badges ── */
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: 8pt; font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .badge-critical { background: #FEE2E2; color: var(--critical); }
+  .badge-high     { background: #FFEDD5; color: var(--high); }
+  .badge-medium   { background: #FEF3C7; color: #92400E; }
+  .badge-low      { background: #DBEAFE; color: #1E40AF; }
+  .badge-info     { background: #F3F4F6; color: var(--info); }
+  .badge-ok       { background: #DCFCE7; color: #15803D; }
+  .badge-partial  { background: #FEF3C7; color: #92400E; }
+  /* ── Charts ── */
+  .chart-row { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+  .chart-box { flex: 1; min-width: 260px; border: 1px solid var(--border);
+               border-radius: 8px; padding: 12px; background: white; }
+  .chart-box svg { width: 100%; height: auto; display: block; }
+  /* ── Info boxes ── */
+  .info-box {
+    background: var(--bg); border-left: 4px solid var(--accent);
+    padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0;
+  }
+  .warn-box  { border-left-color: var(--high); }
+  .crit-box  { border-left-color: var(--critical); }
+  .ok-box    { border-left-color: var(--ok); }
+  /* ── Recommendation cards ── */
+  .rec-card {
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; margin: 8px 0; page-break-inside: avoid;
+  }
+  .rec-card .rec-header { display: flex; align-items: center; gap: 10px;
+                           margin-bottom: 6px; }
+  .rec-num { background: var(--accent); color: white; width: 22px; height: 22px;
+             border-radius: 50%; display: flex; align-items: center;
+             justify-content: center; font-size: 9pt; font-weight: 700;
+             flex-shrink: 0; }
+  .effort-immediate  { color: var(--critical); font-weight: 600; font-size: 8pt; }
+  .effort-short_term { color: var(--high);     font-weight: 600; font-size: 8pt; }
+  .effort-long_term  { color: var(--medium);   font-weight: 600; font-size: 8pt; }
+  /* ── Footer note ── */
+  .confidential-banner {
+    background: #1F2937; color: white; padding: 8px 16px;
+    text-align: center; font-size: 8pt; letter-spacing: 2px;
+    text-transform: uppercase; margin-bottom: 16px;
+  }
+  /* ── Compliance ── */
+  .compliance-pct { font-size: 16pt; font-weight: 700; }
+  .pct-ok   { color: var(--ok); }
+  .pct-warn { color: var(--medium); }
+  .pct-fail { color: var(--critical); }
+</style>
+</head>
+<body>
+
+{# ── Cover page ──────────────────────────────── #}
+<div class="cover">
+  <div class="cover-logo">{{ report_data.org_name }}</div>
+  <div class="cover-type">{{ report_data.report_type.value|replace('_', ' ')|title }}</div>
+  <h1>Security Assessment Report</h1>
+  <div class="cover-divider"></div>
+  <div class="cover-meta">
+    <div><strong>Generated:</strong> {{ report_data.generated_at.strftime('%B %d, %Y at %H:%M UTC') }}</div>
+    <div><strong>Period:</strong> {{ report_data.period_start.strftime('%b %d') }} – {{ report_data.period_end.strftime('%b %d, %Y') }}</div>
+    <div><strong>Prepared by:</strong> {{ report_data.generated_by }}</div>
+    <div><strong>Report ID:</strong> {{ report_data.report_id }}</div>
+    {% if report_data.scan_job_id %}
+    <div><strong>Scan Job:</strong> {{ report_data.scan_job_id }}</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="confidential-banner">⚠ Confidential — For Internal Use Only ⚠</div>
+
+{# ── Body content injected by child templates ── #}
+{% block content %}{% endblock %}
+
+</body>
+</html>

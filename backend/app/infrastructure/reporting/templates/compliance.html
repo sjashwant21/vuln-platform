@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Compliance Assessment Report</h2>
+<p>{{ report_data.executive_summary }}</p>
+
+{# ── Framework compliance overview ── #}
+<h2>Compliance Summary by Framework</h2>
+<div class="chart-box no-break">{{ charts.compliance|safe }}</div>
+
+<div class="scorecard no-break">
+{% for fw in report_data.compliance %}
+  <div class="score-card">
+    <div class="val {% if fw.compliance_pct >= 80 %}pct-ok{% elif fw.compliance_pct >= 50 %}pct-warn{% else %}pct-fail{% endif %}">{{ fw.compliance_pct|round(0)|int }}%</div>
+    <div class="lbl">{{ fw.framework }}</div>
+  </div>
+{% endfor %}
+</div>
+
+{# ── Per-framework detail ── #}
+{% for fw in report_data.compliance %}
+<div class="page-break"></div>
+<h2>{{ fw.framework }}</h2>
+<div class="scorecard no-break">
+  <div class="score-card"><div class="val val-ok">{{ fw.compliant }}</div><div class="lbl">Compliant</div></div>
+  <div class="score-card"><div class="val val-critical">{{ fw.non_compliant }}</div><div class="lbl">Non-Compliant</div></div>
+  <div class="score-card"><div class="val val-medium">{{ fw.partial }}</div><div class="lbl">Partial</div></div>
+  <div class="score-card"><div class="val val-accent">{{ fw.compliance_pct }}%</div><div class="lbl">Overall</div></div>
+</div>
+
+{# Non-compliant controls first ── #}
+{% set failing = fw.controls | selectattr('status', 'in', ['non_compliant', 'partial']) | list %}
+{% if failing %}
+<h3>Gaps Requiring Attention</h3>
+<table class="no-break">
+  <thead><tr><th>Control</th><th>Title</th><th>Status</th><th>Severity</th><th>Finding</th></tr></thead>
+  <tbody>
+    {% for ctrl in failing %}
+    <tr>
+      <td style="font-family:monospace;font-size:8pt;white-space:nowrap">{{ ctrl.control_id }}</td>
+      <td style="font-size:8.5pt">{{ ctrl.title[:45] }}</td>
+      <td><span class="badge badge-{{ 'critical' if ctrl.status == 'non_compliant' else 'medium' }}">{{ ctrl.status|replace('_',' ')|title }}</span></td>
+      <td><span class="badge badge-{{ ctrl.severity }}">{{ ctrl.severity }}</span></td>
+      <td style="font-size:8pt">{{ ctrl.finding[:80] }}</td>
+    </tr>
+    {% if ctrl.remediation %}
+    <tr style="background:#FAFAFA">
+      <td colspan="5" style="font-size:8pt;padding:4px 10px 8px;color:#374151">
+        <strong>Remediation:</strong> {{ ctrl.remediation[:150] }}
+      </td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{# Compliant controls ── #}
+{% set passing = fw.controls | selectattr('status', 'equalto', 'compliant') | list %}
+{% if passing %}
+<h3>Compliant Controls</h3>
+<table class="no-break">
+  <thead><tr><th>Control</th><th>Title</th><th>Status</th></tr></thead>
+  <tbody>
+    {% for ctrl in passing %}
+    <tr>
+      <td style="font-family:monospace;font-size:8pt">{{ ctrl.control_id }}</td>
+      <td style="font-size:8.5pt">{{ ctrl.title[:60] }}</td>
+      <td><span class="badge badge-ok">✓ Compliant</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endfor %}
+
+{# ── Risk context ── #}
+{% if report_data.ai_recommendations %}
+<div class="page-break"></div>
+<h2>Compliance Remediation Roadmap</h2>
+{% for rec in report_data.ai_recommendations %}
+<div class="rec-card no-break">
+  <div class="rec-header">
+    <div class="rec-num">{{ rec.priority }}</div>
+    <strong>{{ rec.title }}</strong>
+    <span class="effort-{{ rec.effort }}" style="margin-left:auto">{{ rec.effort|replace('_',' ')|upper }}</span>
+  </div>
+  <p>{{ rec.description }}</p>
+  <p style="font-size:8pt;color:#6B7280"><strong>Business impact:</strong> {{ rec.impact }}</p>
+</div>
+{% endfor %}
+{% endif %}
+
+{% endblock %}

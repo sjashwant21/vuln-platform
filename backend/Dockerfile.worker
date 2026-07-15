@@ -1,0 +1,39 @@
+# Celery worker image — shares the same base as the API image
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+
+FROM python:3.11-slim AS runtime
+
+RUN groupadd --gid 1001 appgroup \
+    && useradd --uid 1001 --gid appgroup --shell /bin/bash --create-home appuser
+
+WORKDIR /app
+
+# nmap required for scan tasks
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 nmap \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /install /usr/local
+COPY --chown=appuser:appgroup . .
+
+RUN mkdir -p /app/storage/reports \
+    && chown -R appuser:appgroup /app/storage
+
+USER appuser
+
+CMD ["celery", \
+     "--app", "app.workers.celery_app:celery_app", \
+     "worker", \
+     "--loglevel", "info", \
+     "--concurrency", "4", \
+     "--queues", "scans,cve,ai,reports,default"]
