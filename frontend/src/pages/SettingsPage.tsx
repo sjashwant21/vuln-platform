@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { usersApi, orgApi, authApi } from '@/api'
 import { useAuthStore } from '@/store/auth.store'
@@ -11,7 +11,7 @@ import { Modal } from '@/components/ui/Modal'
 import { usePermission } from '@/hooks/usePermission'
 import { useTheme } from '@/hooks/useTheme'
 import { User, Building2, Users, Lock, Moon, Sun, Trash2, ShieldAlert, Check } from 'lucide-react'
-import type { UserRole } from '@/types'
+import type { Organization, UserRole } from '@/types'
 
 type Tab = 'profile' | 'organisation' | 'team' | 'security' | 'appearance'
 
@@ -40,9 +40,11 @@ export function SettingsPage() {
   const [roleModal, setRoleModal] = useState<{ id: string; name: string; role: UserRole } | null>(null)
   const [newRole, setNewRole]     = useState<UserRole>('viewer')
 
-  const orgQuery = useQuery({ queryKey: ['org'], queryFn: orgApi.me,
-    onSuccess: (o: { name: string }) => setOrgName(o.name) })
+  const orgQuery = useQuery<Organization>({ queryKey: ['org'], queryFn: orgApi.me })
   const teamQuery = useQuery({ queryKey: ['team'], queryFn: () => usersApi.list({ limit: 50 }), enabled: isAdmin })
+
+  // Sync orgName when data loads (replaces deprecated onSuccess)
+  useEffect(() => { if (orgQuery.data) setOrgName(orgQuery.data.name) }, [orgQuery.data])
 
   const updateProfile = useMutation({
     mutationFn: () => usersApi.updateProfile({ full_name: fullName }),

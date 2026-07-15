@@ -6,6 +6,7 @@
     "moduleResolution":"bundler","allowImportingTsExtensions":true,
     "resolveJsonModule":true,"isolatedModules":true,"noEmit":true,
     "jsx":"react-jsx","strict":true,
+    "types":["vite/client"],
     "baseUrl":".","paths":{"@/*":["./src/*"]}
   },
   "include":["src"]
