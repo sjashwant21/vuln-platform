@@ -38,7 +38,19 @@ class Settings(BaseSettings):
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _parse_cors(cls, v: str | list[str]) -> list[str]:
+        if isinstance(v, list):
+            return [o.strip() for o in v if o.strip()]
         if isinstance(v, str):
+            v = v.strip()
+            # Try JSON array format first: ["url1","url2"]
+            if v.startswith("["):
+                try:
+                    import json
+                    parsed = json.loads(v)
+                    return [o.strip() for o in parsed if o.strip()]
+                except Exception:
+                    pass
+            # Fall back to comma-separated
             return [o.strip() for o in v.split(",") if o.strip()]
         return v
 
