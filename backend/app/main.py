@@ -81,6 +81,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("application_starting", env=cfg.app_env, version=cfg.app_version)
     create_engine_and_factory(cfg)
 
+    # ── Auto-migrate on startup (idempotent — safe to run on every cold start) ──
+    try:
+        import subprocess, sys, os
+        alembic_cfg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "alembic.ini")
+        logger.info("running_migrations", config=alembic_cfg_path)
+        result = subprocess.run(
+            [sys.executable, "-m", "alembic", "-c", alembic_cfg_path, "upgrade", "head"],
+            capture_output=True, text=True, timeout=60,
+            env={**os.environ, "DATABASE_URL": cfg.database_url},
+        )
+        if result.returncode == 0:
+            logger.info("migrations_complete", stdout=result.stdout[-500:] if result.stdout else "")
+        else:
+            logger.warning("migrations_failed", stderr=result.stderr[-500:] if result.stderr else "")
+    except Exception as exc:
+        logger.warning("migrations_error", error=str(exc))
+
     yield  # ← application runs here
 
     logger.info("application_shutting_down")
@@ -99,9 +116,9 @@ def create_app() -> FastAPI:
             "AI-Powered Vulnerability Assessment Platform. "
             "Multi-tenant, async, production-grade."
         ),
-        docs_url="/docs" if not cfg.is_production else None,
-        redoc_url="/redoc" if not cfg.is_production else None,
-        openapi_url="/openapi.json" if not cfg.is_production else None,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
         lifespan=lifespan,
     )
 

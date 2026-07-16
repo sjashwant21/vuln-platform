@@ -38,6 +38,11 @@ def create_engine_and_factory(settings: Settings | None = None) -> None:
 
     cfg = settings or get_settings()
 
+    # Railway's public proxy requires SSL — detect by hostname in URL
+    connect_args: dict = {}
+    if any(h in cfg.database_url for h in ("rlwy.net", "railway.internal", "railway.app")):
+        connect_args = {"ssl": "require"}
+
     _engine = create_async_engine(
         cfg.database_url,
         pool_size=cfg.database_pool_size,
@@ -46,6 +51,7 @@ def create_engine_and_factory(settings: Settings | None = None) -> None:
         pool_pre_ping=True,
         pool_recycle=3600,
         echo=cfg.is_development,   # SQL logging in dev only — never in prod
+        connect_args=connect_args,
     )
 
     _session_factory = async_sessionmaker(

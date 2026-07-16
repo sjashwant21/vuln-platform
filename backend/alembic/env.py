@@ -27,6 +27,11 @@ db_url = os.environ.get("DATABASE_URL", "")
 if db_url:
     # Convert async URL to sync for Alembic
     sync_url = db_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+    sync_url = sync_url.replace("postgresql://", "postgresql+psycopg2://")
+    # Railway requires SSL for external connections
+    if "railway" in sync_url and "sslmode" not in sync_url:
+        connector = "&" if "?" in sync_url else "?"
+        sync_url = f"{sync_url}{connector}sslmode=require"
     config.set_main_option("sqlalchemy.url", sync_url)
 
 
