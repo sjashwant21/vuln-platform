@@ -38,13 +38,19 @@ def create_engine_and_factory(settings: Settings | None = None) -> None:
 
     cfg = settings or get_settings()
 
-    # Railway's public proxy requires SSL — detect by hostname in URL
+    # Build the async URL — strip sslmode param (asyncpg doesn't understand it)
+    db_url = cfg.database_url
+    if "sslmode=" in db_url:
+        import re
+        db_url = re.sub(r"[?&]sslmode=[^&]*", "", db_url).rstrip("?&")
+
+    # Railway's public proxy requires SSL — asyncpg uses ssl=True (not a string)
     connect_args: dict = {}
-    if any(h in cfg.database_url for h in ("rlwy.net", "railway.internal", "railway.app")):
-        connect_args = {"ssl": "require"}
+    if any(h in db_url for h in ("rlwy.net", "railway.app", "proxy.rlwy")):
+        connect_args = {"ssl": True}
 
     _engine = create_async_engine(
-        cfg.database_url,
+        db_url,
         pool_size=cfg.database_pool_size,
         max_overflow=cfg.database_max_overflow,
         pool_timeout=cfg.database_pool_timeout,
