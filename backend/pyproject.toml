@@ -56,7 +56,15 @@ include = ["app*"]
 line-length = 100
 target-version = "py311"
 select = ["E", "W", "F", "I", "N", "UP", "S", "B", "A", "C4", "DTZ", "T20", "RET", "SIM"]
-ignore = ["S101"]  # allow assert in tests
+ignore = [
+    "S101",   # allow assert in tests
+    "B008",   # FastAPI uses Depends() as default arg — not a real call
+]
+
+[tool.ruff.per-file-ignores]
+# Test files legitimately use hardcoded credentials, passwords, and tokens
+"tests/**/*.py" = ["S", "T20", "DTZ", "N"]
+"**/conftest.py" = ["S", "T20"]
 
 [tool.mypy]
 python_version = "3.11"
