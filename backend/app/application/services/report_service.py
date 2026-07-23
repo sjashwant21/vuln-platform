@@ -136,8 +136,10 @@ class ReportDataAssembler:
 
     async def _fetch_assets(self, org_id: str) -> list[AssetSummary]:
         from sqlalchemy import and_, func, select
+
         from app.infrastructure.database.models import (
-            AssetModel, VulnerabilityModel,
+            AssetModel,
+            VulnerabilityModel,
         )
 
         stmt = (
@@ -202,10 +204,11 @@ class ReportDataAssembler:
         return assets
 
     async def _fetch_vulns(self, org_id: str) -> list[VulnDetail]:
-        from sqlalchemy import and_, select
+        from sqlalchemy import select
         from sqlalchemy.orm import selectinload
+
         from app.infrastructure.database.models import (
-            VulnerabilityModel, AssetModel, RemediationPlanModel,
+            VulnerabilityModel,
         )
 
         stmt = (
@@ -254,6 +257,7 @@ class ReportDataAssembler:
 
     async def _fetch_severity_counts(self, org_id: str) -> dict[str, int]:
         from sqlalchemy import and_, func, select
+
         from app.infrastructure.database.models import VulnerabilityModel
 
         stmt = (
@@ -267,7 +271,7 @@ class ReportDataAssembler:
             .group_by(VulnerabilityModel.severity)
         )
         rows = (await self._s.execute(stmt)).all()
-        counts: dict[str, int] = {s: 0 for s in ["critical", "high", "medium", "low", "info"]}
+        counts: dict[str, int] = dict.fromkeys(["critical", "high", "medium", "low", "info"], 0)
         for severity, count in rows:
             if severity in counts:
                 counts[severity] = count
@@ -281,9 +285,11 @@ class ReportDataAssembler:
         at weekly intervals. In a full implementation this would
         query a dedicated time-series audit table.
         """
-        from sqlalchemy import and_, func, select
-        from app.infrastructure.database.models import VulnerabilityModel
         from datetime import timedelta
+
+        from sqlalchemy import and_, func, select
+
+        from app.infrastructure.database.models import VulnerabilityModel
 
         points = []
         now = datetime.now(UTC)
@@ -326,6 +332,7 @@ class ReportDataAssembler:
         to common framework controls based on CWE/CVSS attributes.
         """
         from sqlalchemy import and_, select
+
         from app.infrastructure.database.models import VulnerabilityModel
 
         stmt = select(VulnerabilityModel).where(
@@ -354,10 +361,14 @@ class ReportDataAssembler:
 
     @staticmethod
     def _health_label(score: int) -> str:
-        if score >= 90: return "Excellent"
-        if score >= 75: return "Very Good"
-        if score >= 60: return "Good"
-        if score >= 40: return "Fair"
+        if score >= 90:
+            return "Excellent"
+        if score >= 75:
+            return "Very Good"
+        if score >= 60:
+            return "Good"
+        if score >= 40:
+            return "Fair"
         return "Critical"
 
     @staticmethod

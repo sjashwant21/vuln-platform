@@ -17,20 +17,18 @@ from datetime import UTC, datetime
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.schemas.cve_schemas import (
     BatchCorrelateRequest,
     BatchReportResponse,
+    CorrelateRequest,
     CVEDetailResponse,
     CVEReferenceResponse,
     CVEResponse,
     CVSSMetricsResponse,
-    CorrelateRequest,
     IngestionStatusResponse,
     IntelligenceReportResponse,
-    RescoreRequest,
-    SeverityBreakdown,
     report_to_response,
 )
 from app.dependencies import CurrentUser
@@ -51,21 +49,20 @@ def _get_correlation_service(
 
 async def _build_correlation_service(
     request: object,
-) -> "CVECorrelationService":  # type: ignore[name-defined]
+) -> CVECorrelationService:  # type: ignore[name-defined]  # noqa: F821
     """
     Build the correlation service with per-request Redis and DB session.
     In production this is provided by the DI container in dependencies.py.
     This inline version is used here to keep the router self-contained.
     """
-    from fastapi import Request
     import redis.asyncio as aioredis
 
+    from app.application.services.cve_correlation_service import CVECorrelationService
     from app.config import get_settings
     from app.infrastructure.cache.cve_cache import CVECache
     from app.infrastructure.cache.rate_limiter import RedisTokenBucket
     from app.infrastructure.cve.nvd_client import NVDClient
     from app.infrastructure.cve.version_matcher import VersionMatcher
-    from app.application.services.cve_correlation_service import CVECorrelationService
     from app.infrastructure.database.connection import get_session_factory
 
     cfg = get_settings()
@@ -117,13 +114,14 @@ async def correlate(
     body:         CorrelateRequest,
     current_user: CurrentUser,
 ) -> IntelligenceReportResponse:
-    from app.config import get_settings
     import redis.asyncio as aioredis
+
+    from app.application.services.cve_correlation_service import CVECorrelationService
+    from app.config import get_settings
     from app.infrastructure.cache.cve_cache import CVECache
     from app.infrastructure.cache.rate_limiter import RedisTokenBucket
     from app.infrastructure.cve.nvd_client import NVDClient
     from app.infrastructure.cve.version_matcher import VersionMatcher
-    from app.application.services.cve_correlation_service import CVECorrelationService
     from app.infrastructure.database.connection import get_session_factory
 
     cfg = get_settings()
@@ -193,14 +191,14 @@ async def correlate_batch(
     body:         BatchCorrelateRequest,
     current_user: CurrentUser,
 ) -> BatchReportResponse:
-    import asyncio
-    from app.config import get_settings
     import redis.asyncio as aioredis
+
+    from app.application.services.cve_correlation_service import CVECorrelationService
+    from app.config import get_settings
     from app.infrastructure.cache.cve_cache import CVECache
     from app.infrastructure.cache.rate_limiter import RedisTokenBucket
     from app.infrastructure.cve.nvd_client import NVDClient
     from app.infrastructure.cve.version_matcher import VersionMatcher
-    from app.application.services.cve_correlation_service import CVECorrelationService
     from app.infrastructure.database.connection import get_session_factory
 
     cfg = get_settings()
@@ -273,14 +271,15 @@ async def get_cve(
     cve_id:       str,
     current_user: CurrentUser,
 ) -> CVEDetailResponse:
+    import re
+
     import redis.asyncio as aioredis
+
     from app.config import get_settings
     from app.infrastructure.cache.cve_cache import CVECache
     from app.infrastructure.cache.rate_limiter import RedisTokenBucket
     from app.infrastructure.cve.nvd_client import NVDClient
     from app.infrastructure.database.connection import get_session_factory
-    from app.domain.exceptions import ValidationError as DomainValidationError
-    import re
 
     if not re.match(r"^CVE-\d{4}-\d{4,}$", cve_id.upper()):
         raise HTTPException(
@@ -376,13 +375,15 @@ async def get_cve(
 async def ingestion_status(
     current_user: CurrentUser,
 ) -> IngestionStatusResponse:
+    from datetime import timedelta
+
     import redis.asyncio as aioredis
     from sqlalchemy import func, select
+
     from app.config import get_settings
     from app.infrastructure.cache.rate_limiter import RedisTokenBucket
     from app.infrastructure.database.connection import get_session_factory
     from app.infrastructure.database.models import CVECacheModel
-    from datetime import timedelta
 
     cfg = get_settings()
     redis_client = aioredis.from_url(

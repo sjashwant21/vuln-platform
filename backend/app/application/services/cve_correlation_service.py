@@ -27,19 +27,18 @@ then passed through the risk scoring engine.
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from typing import Any
 
 import structlog
 
 from app.domain.models.cve import (
-    AssetCriticality,
-    CorrelationMatch,
     CVE,
+    CorrelationMatch,
     IntelligenceReport,
     MatchMethod,
     RiskContext,
-    Severity,
 )
 from app.infrastructure.cache.cve_cache import CVECache
 from app.infrastructure.cve.nvd_client import NVDClient
@@ -434,6 +433,3 @@ class CVECorrelationService:
             risk_score=      risk_score,
         )
 
-
-# Local import needed inside static method
-import re
