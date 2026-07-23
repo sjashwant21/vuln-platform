@@ -2,202 +2,194 @@
 
 AI-powered vulnerability assessment platform — a production-ready, multi-tenant web application combining a FastAPI backend, a React + Vite frontend, background workers (Celery + Redis), and PostgreSQL persistence. It provides automated vulnerability analysis, report generation, and an AI-assisted intelligence layer (Groq/OpenAI integrations).
 
-- Status: Work-in-progress
-- API prefix: /v1
-- Docs: /docs (FastAPI interactive docs)
-- Health: /health
-- OpenAPI: /openapi.json
+[![CI](https://img.shields.io/badge/ci-none-lightgrey)](https://github.com/sjashwant21/vuln-platform/actions)
+[![License](https://img.shields.io/badge/license-ADD--LICENSE-lightgrey)](LICENSE)
+
+Summary: FastAPI backend (async), React + Vite frontend, Celery workers, Redis, Postgres. API mounted at `/v1`, docs at `/docs`, health at `/health`.
+
+Table of contents
+- Features
+- Quick start (Docker)
+- Local development
+- Environment variables
+- Database & migrations
+- Testing, linting & formatting
+- Deployment notes
+- Security
+- Contributing
+- Where to look in the code
+- License & contact
 
 ## Features
 
-- Async FastAPI backend with structured logging and robust error handling
-- React (Vite + TypeScript) frontend with Tailwind-based styling
-- Background processing using Celery + Redis
-- PostgreSQL persistence with Alembic migrations
-- Report generation (DOCX / HTML / charts)
-- AI-assisted analysis via Groq (configurable) and OpenAI fallback
-- Rate-limiting, JWT auth, MFA support, and policy/plan limits
-
-## Tech stack
-
-- Language(s): Python (backend), TypeScript + React (frontend)
-- Backend: FastAPI, Uvicorn, SQLAlchemy (async), Alembic
-- Worker/Queue: Celery + Redis
-- Database: PostgreSQL (asyncpg)
-- Frontend: React + Vite + TypeScript
-- Notable libs: pydantic, structlog, httpx, python-docx, Jinja2, recharts, @tanstack/react-query
-
-## Repository structure (top-level)
-
-```
-.env.example            # example environment variables
-Makefile                # developer convenience tasks (up, build, migrate, test, lint...)
-docker-compose.yml      # docker-compose orchestration for full stack
-nginx/                  # nginx config and TLS helpers
-backend/                # FastAPI backend (app/, Dockerfile, alembic, tests, pyproject)
-frontend/               # React + Vite frontend (src/, package.json, vite.config.ts)
-```
-
-How it fits together:
-- nginx sits in front, proxying to the FastAPI API and serving the frontend build.
-- The API (backend) exposes /v1/* endpoints and provides health and docs routes.
-- Celery worker picks up long-running analysis/report jobs via Redis.
-- PostgreSQL stores tenants, users, reports and analysis results; Alembic manages schema migrations.
+- Async FastAPI backend with structured JSON logging (structlog) and robust exception handling
+- React (Vite + TypeScript) frontend with Tailwind-ready config
+- Background processing with Celery + Redis for long-running analysis and report generation
+- PostgreSQL persistence (asyncpg) with Alembic migrations
+- Report generation: DOCX, HTML and charts
+- AI-assisted analysis via configurable providers (Groq primary, OpenAI fallback)
+- Authentication: JWT, optional MFA, and rate limiting
 
 ## Quick start — development (Docker, recommended)
 
-1. Copy .env example and fill required secrets:
-   - cp .env.example .env
-   - Use `make gen-secrets` to generate secure values for SECRET_KEY, JWT_SECRET_KEY, POSTGRES_PASSWORD, REDIS_PASSWORD
+1. Copy environment template and generate secrets:
 
-2. Bring up the full stack:
+```bash
+cp .env.example .env
+# generate secrets (prints values, copy into .env)
+make gen-secrets
 ```
-# from repo root
+
+2. Start the stack:
+
+```bash
 make up
 # or
 docker-compose up -d --remove-orphans
 ```
 
-3. Run migrations (the app attempts auto-migrate on startup, but you can run explicitly):
-```
+3. Run migrations (the API attempts an idempotent auto-migrate at startup; you can run explicitly):
+
+```bash
 make migrate
-# or (runs alembic inside docker)
+# or
 docker-compose run --rm migrate
 ```
 
-4. View:
-- Frontend: http://localhost (nginx serves the frontend build on 80)
+4. Access the services:
+- Frontend: http://localhost (nginx reverse proxy)
 - API docs: http://localhost/docs
 - Health: http://localhost/health
 
 Stop the stack:
-```
+
+```bash
 make down
 # or
 docker-compose down
 ```
 
-## Quick start — local development without Docker
+Notes
+- The project expects secrets to be provided via `.env` for local compose runs.
+- If nginx is not used locally, frontend dev server runs on the port shown by `npm run dev` (frontend).
 
-Backend:
-```
-# from repo root
+## Local development (without Docker)
+
+Backend (recommended Python 3.11+):
+
+```bash
 cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-# set DATABASE_URL and REDIS_URL (see .env.example)
+# set env vars from .env.example (DATABASE_URL, REDIS_URL, etc.)
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Frontend:
-```
+
+```bash
 cd frontend
 npm install
 npm run dev
-# preview production build
+# To build production assets
 npm run build
+# Serve the preview build
 npm run preview
 ```
 
-Notes:
-- When running backend locally, set env vars from `.env.example` or a virtual environment.
-- The backend module exposes `app` in `backend/app/main.py` and uses Alembic for migrations.
+To serve frontend build behind nginx (as docker-compose does), copy `dist/` into nginx/static or mount appropriately and reload nginx.
 
 ## Environment variables
 
-A full template is in `.env.example`. Important ones include:
+See `.env.example` for a complete template. Important variables:
 - APP_ENV / APP_NAME / LOG_LEVEL
 - SECRET_KEY, JWT_SECRET_KEY, JWT_* settings
-- DATABASE_URL (postgresql+asyncpg://...)
+- DATABASE_URL (e.g. postgresql+asyncpg://user:pass@host:5432/dbname)
 - REDIS_URL, CELERY_BROKER_URL, CELERY_RESULT_BACKEND
-- GROQ_API_KEY, GROQ_MODEL (AI provider settings)
-- NVD_API_KEY (for NVD vulnerability lookups)
+- GROQ_API_KEY and GROQ_MODEL (AI provider)
+- NVD_API_KEY (optionally used for NVD lookups)
 
-Always keep real secrets out of source control.
+Do NOT commit real secrets.
 
 ## Database & migrations
 
-- Alembic config lives under `backend/` (alembic.ini and migrations).
-- Docker path: the `migrate` service in docker-compose runs Alembic to upgrade head.
-- Local: from `backend/` you can run `alembic upgrade head` (the Makefile includes a convenience `migrate-local` target).
+- Alembic config and migrations live under `backend/alembic/` and `backend/alembic.ini`.
+- Docker-compose provides a `migrate` service that runs `alembic upgrade head`.
+- Locally (from `backend/`):
+
+```bash
+alembic -c alembic.ini upgrade head
+```
+
+If you prefer Makefile helper:
+```bash
+make migrate-local
+```
 
 ## Tests, linting & formatting
 
-- Run test suite (backend):
-```
+Run backend tests and coverage:
+
+```bash
 make test
 # or
 cd backend && pytest tests/ -v --cov=app --cov-report=term-missing --cov-report=html
 ```
 
-- Unit / integration split:
-  - Unit: `make test-unit`
-  - Integration: `make test-integration`
+Unit/integration examples:
+- Unit tests: `make test-unit`
+- Integration tests: `make test-integration`
 
-- Lint & format:
+Lint/format and type checks:
+
+```bash
+make lint   # ruff
+make fmt    # ruff format
+make check  # ruff + mypy
 ```
-make lint    # ruff
-make fmt     # ruff format
-make check   # lint + mypy
-```
 
-## CI / Deployment notes
+## Deployment notes
 
-- Frontend is configured for Vercel (see `frontend/vercel.json`).
-- Backend contains `railway.toml` and can be deployed to platforms supporting Docker/containers.
-- docker-compose provides a reproducible environment for testing and demo deployments; for production, replace compose with orchestration (K8s/Cloud Run) and properly manage secrets & TLS.
+- Frontend contains `frontend/vercel.json` if you want to deploy static site to Vercel.
+- Backend has `railway.toml` for Railway deployments; it also supports containerized deployment via Dockerfile.
+- For production, use a secrets manager (Vault/Secret Manager), enable TLS termination, and run services in an orchestrator (Kubernetes, ECS, Cloud Run, etc.).
 
 ## Background workers
 
-- The `worker` service builds from `backend/Dockerfile.worker` and runs Celery workers using Redis as broker/result backend.
-- Ensure `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` are set and Redis is reachable.
+- The Celery worker image is built from `backend/Dockerfile.worker`.
+- Ensure `CELERY_BROKER_URL` and `CELERY_RESULT_BACKEND` are configured and that Redis accepts the configured password.
 
 ## Observability & logging
 
-- Structured JSON logging via structlog.
-- Healthchecks are configured for postgres, redis, api, and nginx in docker-compose.
+- Structured JSON logs via structlog. Configure `LOG_LEVEL` in `.env`.
+- docker-compose includes healthchecks for postgres, redis, api, and nginx.
 
 ## Security considerations
 
-- JWT-based auth (configure strong `JWT_SECRET_KEY`).
-- Bcrypt rounds, rate-limiting, and security headers are included.
-- Always run behind TLS (nginx folder contains example nginx conf and SSL mounting).
-- Do not commit production `.env` files or secrets.
+- Configure a strong `JWT_SECRET_KEY` and keep secrets out of VCS.
+- Security headers and HSTS are applied when the app is in production mode.
+- Ensure rate limiting and tenant quotas are configured for public deployments.
+- TLS must be enabled in front of the app for production (nginx in this repo expects certificates to be mounted at `nginx/ssl`).
 
 ## Contributing
 
-- Please open issues for features or bugs.
-- Follow the code style: Python formatting via `ruff`, typing via `mypy`.
-- Create feature branches and open PRs with tests for new behavior.
+- Create a branch `feat/<short-desc>` or `fix/<short-desc>` off `main` and open a PR.
+- Include tests for new features or bug fixes.
+- Run linting & type checks: `make check`.
 
-Suggested branch workflow:
-- branch: feat/<short-desc>
-- PR target: main
-- Include test coverage for new features.
-
-## Roadmap / TODO (examples)
-
-- Add end-to-end tests (frontend + backend CI)
-- Add role-based access control & audit logs
-- Add rate-limiting per tenant & quota dashboards
-- Integrate additional AI providers and model selector
-
-## License
-
-Add a LICENSE file to declare the project license (e.g., MIT). This repository currently has no LICENSE file — choose and add one before publishing.
+Maintainer: @sjashwant21
 
 ## Where to look in the code
 
-- backend/app/main.py — application factory, routers, exception handlers, lifespan and startup behavior
-- backend/pyproject.toml & backend/requirements.txt — backend dependencies and test/dev extras
-- backend/alembic/ — migrations
-- frontend/package.json & frontend/src/ — frontend app and build scripts
-- docker-compose.yml — how services are wired for local/dev deployments
-- Makefile — common developer commands (up/down/build/migrate/test/lint)
+- `backend/app/main.py` — application factory (lifespan, middleware, routers)
+- `backend/pyproject.toml` & `backend/requirements.txt` — dependencies
+- `backend/alembic/` — database migrations
+- `frontend/src/` — frontend source
+- `docker-compose.yml` and `Makefile` — dev orchestration and helpers
 
----
+## License & contact
 
-If you'd like, I can:
-- Create this README.md file in the repo (draft a commit) or
-- Produce shorter or longer variants (one-page overview, or an expanded developer handbook with architecture diagrams and examples).
+This repository does not include a LICENSE file. Add a license (e.g., MIT) to make reuse clear.
+
+Contact: Shaan Jashwant (<109244010+sjashwant21@users.noreply.github.com>)
