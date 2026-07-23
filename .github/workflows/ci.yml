@@ -31,7 +31,9 @@ jobs:
 
       - name: Run Ruff Linter
         working-directory: ./backend
-        run: ruff check .
+        run: |
+          ruff check . --fix
+          ruff format .
 
       - name: Run Mypy Type Checker
         working-directory: ./backend
