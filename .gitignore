@@ -1,47 +1,87 @@
-# ── Secrets ─────────────────────────────────────────────────────
+# ====================================================================
+# VulnAssess Platform - .gitignore
+# ====================================================================
+
+# ── Environment & Secrets ───────────────────────────────────────────
 .env
 .env.local
 .env.*.local
+# (Note: .env.example should remain tracked)
 
-# ── Python ──────────────────────────────────────────────────────
-backend/venv/
-backend/__pycache__/
-backend/**/__pycache__/
-backend/**/*.pyc
-backend/**/*.pyo
-backend/.pytest_cache/
-backend/htmlcov/
-backend/.coverage
-*.egg-info/
-
-# ── Node / Frontend ─────────────────────────────────────────────
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
-
-# ── OS ──────────────────────────────────────────────────────────
-.DS_Store
-Thumbs.db
-
-# ── Editor ──────────────────────────────────────────────────────
-.vscode/settings.json
-.idea/
-*.swp
-
-.vercel
-
-# ── Security & Certificates ─────────────────────────────────────
-nginx/ssl/
+# ── Certificates & Private Keys ─────────────────────────────────────
 *.pem
 *.key
 *.crt
 *.p12
 *.pfx
+*.der
+*.cer
+nginx/ssl/
 
-# ── Caches, Logs & Databases ────────────────────────────────────
+# ── Python / Backend ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+ENV/
+env/
+
+# ── Node / TypeScript / Frontend ────────────────────────────────────
+node_modules/
+.npm/
+.next/
+dist/
+build/
+.cache/
+
+# ── Runtime Artifacts & Databases ───────────────────────────────────
 *.log
-celerybeat-schedule
 *.db
 *.sqlite3
+celerybeat-schedule
+celerybeat.pid
+
+# ── Tool Caches & Testing ───────────────────────────────────────────
 .mypy_cache/
-backend/.ruff_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# ── IDEs & Editors ──────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Docker ──────────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ── Database Migrations (Alembic) ───────────────────────────────────
+# Ensure migration versions are explicitly NOT ignored
+!backend/alembic/versions/
+!alembic/versions/
