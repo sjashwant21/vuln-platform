@@ -190,7 +190,8 @@ class AuthService:
         to avoid timing-based user enumeration attacks.
         """
         user = await self._users.get_by_email(inp.email)
-        dummy_hash = "$2b$12$notarealhashXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        # This is a validly formatted bcrypt hash (length 60) used to prevent timing attacks
+        dummy_hash = "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewKY.3p9b5tYnU6O"
         stored_hash = user.password_hash if user else dummy_hash
 
         password_ok = self._pw.verify(inp.password, stored_hash)
