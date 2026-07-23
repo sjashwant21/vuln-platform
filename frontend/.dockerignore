@@ -1,0 +1,10 @@
+# frontend/.dockerignore
+.git
+.gitignore
+node_modules/
+.env
+.env.*
+dist/
+.vite/
+*.log
+.DS_Store
