@@ -30,6 +30,37 @@ Table of contents
 - AI-assisted analysis via configurable providers (Groq primary, OpenAI fallback)
 - Authentication: JWT, optional MFA, and rate limiting
 
+## Architecture
+
+```mermaid
+flowchart TD
+    Client["User's Browser (Client)"]
+    
+    subgraph "Docker Network"
+        Nginx["Nginx<br/>(Reverse Proxy + TLS, :443)"]
+        Frontend["React + Vite Frontend<br/>(Static Files)"]
+        FastAPI["FastAPI Backend<br/>(async, Python 3.11, :8000, /v1)"]
+        Celery["Celery Worker<br/>(Background Task Processor)"]
+        Redis["Redis<br/>(Message Broker & Cache)"]
+        Postgres["PostgreSQL<br/>(Primary DB, asyncpg, Alembic)"]
+    end
+
+    subgraph "External APIs"
+        Groq["Groq AI API<br/>(LLM-based Analysis)"]
+        NVD["NVD API<br/>(CVE Data Source, NIST)"]
+    end
+
+    Client -->|HTTPS requests| Nginx
+    Nginx -->|Serves| Frontend
+    Nginx -->|Sync API calls| FastAPI
+    FastAPI -->|Dispatches scan tasks via Redis| Celery
+    Celery -->|Stores results| Postgres
+    Celery -->|AI analysis during scans| Groq
+    Celery -->|CVE lookups during scans| NVD
+    FastAPI -->|Reads results to serve client| Postgres
+    FastAPI -->|Cache + session data| Redis
+```
+
 ## Quick start — development (Docker, recommended)
 
 1. Copy environment template and generate secrets:
