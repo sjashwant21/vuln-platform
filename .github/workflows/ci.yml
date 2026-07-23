@@ -35,6 +35,14 @@ jobs:
 
       - name: Run Pytest with Coverage
         working-directory: ./backend
+        env:
+          APP_ENV: test
+          SECRET_KEY: "ci-test-secret-key-32-chars-minimum-pad"
+          JWT_SECRET_KEY: "ci-test-jwt-secret-key-64-chars-minimum-padding-here-1234567890ab"
+          DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test_db"
+          REDIS_URL: "redis://localhost:6379/15"
+          GROQ_API_KEY: "test-groq-key"
+          NVD_API_KEY: "test-nvd-key"
         run: pytest tests/ --cov=app --cov-fail-under=60
 
       - name: Run Pip Audit
