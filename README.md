@@ -73,6 +73,37 @@ Notes
 - The project expects secrets to be provided via `.env` for local compose runs.
 - If nginx is not used locally, frontend dev server runs on the port shown by `npm run dev` (frontend).
 
+## Step-by-Step Usage Guide
+
+**Step 1: Access the API Documentation (Swagger UI)**
+1. With the Docker stack running (`make up` or `docker compose up -d`), open your browser and go to: `http://localhost/docs` (or `http://localhost:8000/docs` if running locally).
+2. This is the interactive dashboard where you can test all your endpoints without writing any frontend code.
+
+**Step 2: Create an Organization and User (Registration)**
+1. In the Swagger UI, scroll down to the **Auth** section and click on `POST /v1/auth/register`.
+2. Click the **"Try it out"** button.
+3. Enter test JSON data:
+   ```json
+   {
+     "email": "admin@mycompany.com",
+     "password": "Password123!",
+     "full_name": "John Doe",
+     "organization_name": "My Security Corp",
+     "organization_slug": "my-sec-corp"
+   }
+   ```
+4. Click **Execute**. You should get a `201 Created` response containing your new `access_token`.
+
+**Step 3: Authenticate (Login)**
+1. Scroll to the very top of the Swagger UI page and click the green **"Authorize"** button (with the padlock icon).
+2. Paste the `access_token` you just received into the value box and click **Authorize**.
+3. Now, every API request you make will automatically include your authentication token!
+
+**Step 4: Test the AI Vulnerability Features (The Core Flow)**
+1. **Add an Asset**: Go to the Assets endpoint (e.g., `POST /v1/assets`), click "Try it out", and add a target URL or IP address you want to scan.
+2. **Trigger a Scan**: Call the scan endpoint for that asset. Because we are using Celery + Redis, this will be queued as a background task.
+3. **View the AI Analysis**: Once the scan finishes, you can use the `GET /v1/scans/{scan_id}/report` endpoint. This will return the vulnerabilities found, prioritized and summarized by the AI engine!
+
 ## Local development (without Docker)
 
 Backend (recommended Python 3.11+):
@@ -190,6 +221,6 @@ Maintainer: @sjashwant21
 
 ## License & contact
 
-This repository does not include a LICENSE file. Add a license (e.g., MIT) to make reuse clear.
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
 
 Contact: Shaan Jashwant (<109244010+sjashwant21@users.noreply.github.com>)
