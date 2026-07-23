@@ -69,7 +69,7 @@ class OrganizationModel(Base):
     )
 
     # Relationships
-    users: Mapped[list["UserModel"]] = relationship(
+    users: Mapped[list[UserModel]] = relationship(
         "UserModel", back_populates="organization", lazy="noload"
     )
 
@@ -108,10 +108,10 @@ class UserModel(Base):
     )
 
     # Relationships
-    organization: Mapped["OrganizationModel"] = relationship(
+    organization: Mapped[OrganizationModel] = relationship(
         "OrganizationModel", back_populates="users", lazy="noload"
     )
-    refresh_tokens: Mapped[list["RefreshTokenModel"]] = relationship(
+    refresh_tokens: Mapped[list[RefreshTokenModel]] = relationship(
         "RefreshTokenModel", back_populates="user",
         cascade="all, delete-orphan", lazy="noload"
     )
@@ -144,7 +144,7 @@ class RefreshTokenModel(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    user: Mapped["UserModel"] = relationship(
+    user: Mapped[UserModel] = relationship(
         "UserModel", back_populates="refresh_tokens", lazy="noload"
     )
 
@@ -183,11 +183,11 @@ class AssetModel(Base):
         server_default=func.now(), onupdate=func.now()
     )
 
-    ports: Mapped[list["AssetPortModel"]] = relationship(
+    ports: Mapped[list[AssetPortModel]] = relationship(
         "AssetPortModel", back_populates="asset",
         cascade="all, delete-orphan", lazy="noload"
     )
-    vulnerabilities: Mapped[list["VulnerabilityModel"]] = relationship(
+    vulnerabilities: Mapped[list[VulnerabilityModel]] = relationship(
         "VulnerabilityModel", back_populates="asset", lazy="noload"
     )
 
@@ -213,7 +213,7 @@ class AssetPortModel(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    asset: Mapped["AssetModel"] = relationship(
+    asset: Mapped[AssetModel] = relationship(
         "AssetModel", back_populates="ports", lazy="noload"
     )
 
@@ -253,7 +253,7 @@ class ScanJobModel(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    findings: Mapped[list["ScanFindingModel"]] = relationship(
+    findings: Mapped[list[ScanFindingModel]] = relationship(
         "ScanFindingModel", back_populates="scan_job",
         cascade="all, delete-orphan", lazy="noload"
     )
@@ -289,7 +289,7 @@ class ScanFindingModel(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    scan_job: Mapped["ScanJobModel"] = relationship(
+    scan_job: Mapped[ScanJobModel] = relationship(
         "ScanJobModel", back_populates="findings", lazy="noload"
     )
 
@@ -357,10 +357,10 @@ class VulnerabilityModel(Base):
         server_default=func.now(), onupdate=func.now()
     )
 
-    asset: Mapped["AssetModel"] = relationship(
+    asset: Mapped[AssetModel] = relationship(
         "AssetModel", back_populates="vulnerabilities", lazy="noload"
     )
-    remediation_plans: Mapped[list["RemediationPlanModel"]] = relationship(
+    remediation_plans: Mapped[list[RemediationPlanModel]] = relationship(
         "RemediationPlanModel", back_populates="vulnerability",
         cascade="all, delete-orphan", lazy="noload"
     )
@@ -390,7 +390,7 @@ class RemediationPlanModel(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    vulnerability: Mapped["VulnerabilityModel"] = relationship(
+    vulnerability: Mapped[VulnerabilityModel] = relationship(
         "VulnerabilityModel", back_populates="remediation_plans", lazy="noload"
     )
 

@@ -12,10 +12,9 @@ Analysis is expensive (5 LLM calls) — rate limited to 5/hour per org.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 
 from app.api.schemas.analysis_schemas import (
@@ -32,8 +31,8 @@ router = APIRouter(prefix="/analysis", tags=["AI Security Analyst"])
 
 def _build_service(body: AnalyseRequest) -> object:
     """Build the analyst service from request parameters."""
-    from app.config import get_settings
     from app.application.services.ai_analyst_service import create_analyst_service
+    from app.config import get_settings
     from app.domain.models.analysis import LLMProvider, ProviderConfig
 
     cfg = get_settings()
@@ -90,7 +89,9 @@ def _build_service(body: AnalyseRequest) -> object:
 def _build_request(body: AnalyseRequest) -> object:
     """Convert API schema to domain AnalysisRequest."""
     from app.domain.models.analysis import (
-        AnalysisRequest, ServiceInput, VulnerabilityInput,
+        AnalysisRequest,
+        ServiceInput,
+        VulnerabilityInput,
     )
 
     services = tuple(
@@ -163,7 +164,9 @@ async def analyse(
     current_user: CurrentUser,
 ) -> SecurityAnalysisResponse:
     from app.infrastructure.ai.provider_protocol import (
-        LLMProviderError, LLMRateLimitError, LLMTimeoutError,
+        LLMProviderError,
+        LLMRateLimitError,
+        LLMTimeoutError,
     )
 
     svc     = _build_service(body)

@@ -88,7 +88,7 @@ class GeminiProvider:
                 ),
                 timeout=float(self._config.timeout_s),
             )
-        except asyncio.TimeoutError as exc:
+        except TimeoutError as exc:
             raise LLMTimeoutError("gemini", f"Timed out after {self._config.timeout_s}s") from exc
         except Exception as exc:
             err = str(exc).lower()

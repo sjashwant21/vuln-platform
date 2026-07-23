@@ -14,11 +14,11 @@ from typing import Annotated
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import HTMLResponse, Response
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.schemas.report_schemas import GenerateReportRequest, ReportMetadataResponse
+from app.api.schemas.report_schemas import GenerateReportRequest
 from app.dependencies import CurrentUser, get_db_session
 from app.domain.models.report import ReportFormat, ReportType
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger(__name__)
 
@@ -29,6 +29,7 @@ DBSession = Annotated[AsyncSession, Depends(get_db_session)]
 
 async def _get_org_name(session: AsyncSession, org_id: str) -> str:
     from sqlalchemy import select
+
     from app.infrastructure.database.models import OrganizationModel
     stmt   = select(OrganizationModel.name).where(OrganizationModel.id == org_id)
     result = (await session.execute(stmt)).scalar_one_or_none()

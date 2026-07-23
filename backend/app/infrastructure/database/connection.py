@@ -10,9 +10,9 @@ Architecture decisions:
 """
 from __future__ import annotations
 
-import structlog
 from collections.abc import AsyncGenerator
 
+import structlog
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,

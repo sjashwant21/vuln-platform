@@ -22,7 +22,7 @@ from __future__ import annotations
 from typing import Annotated
 
 import structlog
-from fastapi import Depends, Header, Request
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,8 +34,6 @@ from app.domain.enums import UserRole
 from app.domain.exceptions import (
     AuthenticationError,
     InsufficientRoleError,
-    InvalidTokenError,
-    TokenExpiredError,
 )
 from app.infrastructure.database.connection import get_db_session
 from app.infrastructure.database.repositories.organization_repository import (

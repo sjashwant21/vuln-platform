@@ -14,7 +14,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-
 # ── Request schemas ────────────────────────────────────────────
 
 class CorrelateRequest(BaseModel):
@@ -197,7 +196,7 @@ class IngestionStatusResponse(BaseModel):
 
 def report_to_response(report: object) -> IntelligenceReportResponse:
     """Convert IntelligenceReport domain object to API response schema."""
-    from app.domain.models.cve import IntelligenceReport, Severity
+    from app.domain.models.cve import IntelligenceReport
 
     r: IntelligenceReport = report  # type: ignore[assignment]
 

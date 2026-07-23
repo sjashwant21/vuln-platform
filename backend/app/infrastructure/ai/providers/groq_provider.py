@@ -10,11 +10,9 @@ OpenAIProvider with Groq's base URL and maps LLMProvider.GROQ.
 """
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
-
 import structlog
 
-from app.domain.models.analysis import LLMProvider, LLMResponse, ProviderConfig
+from app.domain.models.analysis import LLMProvider, ProviderConfig
 from app.infrastructure.ai.providers.openai_provider import OpenAIProvider
 
 logger = structlog.get_logger(__name__)

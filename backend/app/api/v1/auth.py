@@ -11,22 +11,20 @@ All business logic, password policy, and token management live in AuthService.
 """
 from __future__ import annotations
 
-from typing import Annotated
-
 import structlog
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Request, status
 
 from app.api.schemas.auth_schemas import (
     ChangePasswordRequest,
     LoginRequest,
     LogoutRequest,
     MessageResponse,
+    OrganizationResponse,
     RefreshRequest,
     RegisterRequest,
     RegisterResponse,
     TokenResponse,
     UserResponse,
-    OrganizationResponse,
 )
 from app.application.dto.auth_dto import (
     ChangePasswordInput,

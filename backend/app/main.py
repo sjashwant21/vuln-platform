@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.middleware.request_context import RequestContextMiddleware
-from app.api.v1 import auth, health, organizations, users, analysis, intelligence, reports
+from app.api.v1 import analysis, auth, health, intelligence, organizations, reports, users
 from app.config import get_settings
 from app.domain.exceptions import (
     AuthenticationError,
@@ -83,7 +83,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # ── Auto-migrate on startup (idempotent — safe to run on every cold start) ──
     try:
-        import subprocess, sys, os
+        import os
+        import subprocess
+        import sys
         alembic_cfg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "alembic.ini")
         logger.info("running_migrations", config=alembic_cfg_path)
         result = subprocess.run(

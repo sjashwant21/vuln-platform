@@ -20,13 +20,13 @@ from typing import Any
 
 import redis.asyncio as aioredis
 import structlog
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.models.cve import (
     CVE,
-    CVSSMetrics,
     CVEReference,
+    CVSSMetrics,
 )
 
 logger = structlog.get_logger(__name__)
@@ -188,9 +188,11 @@ class CVECache:
         return {row.cve_id: self._model_to_domain(row) for row in rows}
 
     async def _pg_upsert(self, cve: CVE) -> None:
-        from sqlalchemy.dialects.postgresql import insert
-        from app.infrastructure.database.models import CVECacheModel
         import uuid
+
+        from sqlalchemy.dialects.postgresql import insert
+
+        from app.infrastructure.database.models import CVECacheModel
 
         data = self._domain_to_model_dict(cve)
         stmt = (

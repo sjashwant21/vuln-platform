@@ -14,7 +14,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
-
 # ── Severity ───────────────────────────────────────────────────
 
 class Severity(str, Enum):
@@ -26,7 +25,7 @@ class Severity(str, Enum):
     UNKNOWN  = "unknown"    # No CVSS available
 
     @classmethod
-    def from_cvss(cls, score: float | None) -> "Severity":
+    def from_cvss(cls, score: float | None) -> Severity:
         if score is None:
             return cls.UNKNOWN
         if score >= 9.0:

@@ -6,9 +6,7 @@ Role enforcement uses the require_role() dependency factory.
 """
 from __future__ import annotations
 
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, Query, status, Response
+from fastapi import APIRouter, Depends, Query, status
 
 from app.api.schemas.user_schemas import (
     ChangeRoleRequest,

@@ -22,12 +22,10 @@ even when all multipliers are at their maximum.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Sequence
 
 from app.domain.models.cve import (
-    AssetCriticality,
-    CorrelationMatch,
     CVE,
+    CorrelationMatch,
     CVSSMetrics,
     IntelligenceReport,
     RiskContext,

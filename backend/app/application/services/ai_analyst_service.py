@@ -35,7 +35,6 @@ from app.domain.models.analysis import (
     AnalysisRequest,
     AnalysisStage,
     ExecutiveSummary,
-    LLMProvider,
     ManagementSummary,
     ProviderConfig,
     RemediationRecommendations,
@@ -270,10 +269,6 @@ class AIAnalystService:
         Return a safe, clearly-marked placeholder when a stage fails.
         The pipeline continues — a partial analysis is better than no analysis.
         """
-        from app.domain.models.analysis import (
-            ExecutiveSummary, TechnicalAnalysis, RiskPrioritization,
-            RemediationRecommendations, ManagementSummary, RiskLevel,
-        )
 
         note = "⚠️ Analysis for this section could not be completed. Please retry."
 

@@ -17,7 +17,7 @@ callers never instantiate providers directly.
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from app.domain.models.analysis import LLMProvider, LLMResponse, ProviderConfig
 

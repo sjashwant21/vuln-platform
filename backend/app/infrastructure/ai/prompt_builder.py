@@ -17,10 +17,8 @@ Design decisions:
 from __future__ import annotations
 
 import json
-from datetime import datetime
 
 from app.domain.models.analysis import AnalysisRequest, AnalysisStage
-
 
 # ══════════════════════════════════════════════════════════════════
 # Shared analyst persona (prepended to every system prompt)

@@ -11,7 +11,7 @@ from __future__ import annotations
 import structlog
 
 from app.application.dto.auth_dto import OrganizationDTO
-from app.domain.enums import AuditAction, PlanTier, UserRole
+from app.domain.enums import AuditAction, UserRole
 from app.domain.exceptions import (
     InsufficientRoleError,
     ResourceNotFoundError,

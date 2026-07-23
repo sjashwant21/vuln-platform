@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import asyncio
 import io
-import os
 from pathlib import Path
 from typing import Any
 
@@ -86,7 +85,7 @@ class PDFRenderer:
 
     @staticmethod
     def _html_to_pdf(html_str: str) -> bytes:
-        from weasyprint import HTML, CSS
+        from weasyprint import HTML
         from weasyprint.text.fonts import FontConfiguration
 
         font_config = FontConfiguration()

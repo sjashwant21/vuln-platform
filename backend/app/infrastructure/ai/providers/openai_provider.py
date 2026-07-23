@@ -8,7 +8,6 @@ by setting config.base_url.
 """
 from __future__ import annotations
 
-import asyncio
 from collections.abc import AsyncGenerator
 
 import structlog
@@ -83,7 +82,7 @@ class OpenAIProvider:
             raise LLMProviderError("openai", str(exc)) from exc
         except openai.APIStatusError as exc:
             raise LLMProviderError("openai", str(exc), exc.status_code) from exc
-        except asyncio.TimeoutError as exc:
+        except TimeoutError as exc:
             raise LLMTimeoutError("openai", f"Timed out after {self._config.timeout_s}s") from exc
 
         choice  = response.choices[0]

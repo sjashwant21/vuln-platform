@@ -38,10 +38,8 @@ from app.domain.enums import AuditAction, PlanTier, UserRole
 from app.domain.exceptions import (
     AuthenticationError,
     InvalidTokenError,
-    PlanLimitError,
     ResourceConflictError,
     ResourceNotFoundError,
-    TokenExpiredError,
     ValidationError,
 )
 from app.infrastructure.database.repositories.organization_repository import (
@@ -248,6 +246,7 @@ class AuthService:
         # Fallback: look up user by ID only
         if user is None:
             from sqlalchemy import select as sa_select
+
             from app.infrastructure.database.models import UserModel
             result = await self._users._s.execute(
                 sa_select(UserModel).where(UserModel.id == stored.user_id)

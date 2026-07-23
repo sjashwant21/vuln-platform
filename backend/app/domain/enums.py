@@ -139,7 +139,7 @@ class SeverityLevel(str, enum.Enum):
         }[self]
 
     @classmethod
-    def from_cvss(cls, score: float) -> "SeverityLevel":
+    def from_cvss(cls, score: float) -> SeverityLevel:
         if score >= 9.0:
             return cls.CRITICAL
         if score >= 7.0:

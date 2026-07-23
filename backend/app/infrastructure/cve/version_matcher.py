@@ -19,9 +19,9 @@ CPE 2.3 format:
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Sequence
 
 import structlog
 
@@ -352,16 +352,16 @@ class _ParsedVersion:
             parts.append(0)
         return tuple(parts)
 
-    def __lt__(self, other: "_ParsedVersion") -> bool:
+    def __lt__(self, other: _ParsedVersion) -> bool:
         return self._parts < other._parts
 
-    def __le__(self, other: "_ParsedVersion") -> bool:
+    def __le__(self, other: _ParsedVersion) -> bool:
         return self._parts <= other._parts
 
-    def __gt__(self, other: "_ParsedVersion") -> bool:
+    def __gt__(self, other: _ParsedVersion) -> bool:
         return self._parts > other._parts
 
-    def __ge__(self, other: "_ParsedVersion") -> bool:
+    def __ge__(self, other: _ParsedVersion) -> bool:
         return self._parts >= other._parts
 
     def __eq__(self, other: object) -> bool:

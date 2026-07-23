@@ -17,7 +17,6 @@ from app.domain.exceptions import (
     ValidationError,
 )
 
-
 # ── Helpers ────────────────────────────────────────────────────
 
 def _make_user(

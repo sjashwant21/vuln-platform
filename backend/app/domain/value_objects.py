@@ -212,7 +212,7 @@ class SecurityHealthScore:
         medium: int,
         low: int,
         total_assets: int = 1,
-    ) -> "SecurityHealthScore":
+    ) -> SecurityHealthScore:
         """
         Score formula:
         - Start at 100

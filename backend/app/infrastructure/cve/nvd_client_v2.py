@@ -27,7 +27,7 @@ import structlog
 
 from app.config import get_settings
 from app.domain.exceptions import NVDAPIError, RateLimitError
-from app.domain.models.cve import CVE, CVSSMetrics, CVEReference
+from app.domain.models.cve import CVE, CVEReference, CVSSMetrics
 from app.infrastructure.cache.rate_limiter import RedisTokenBucket
 
 logger = structlog.get_logger(__name__)

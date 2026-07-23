@@ -15,13 +15,13 @@ from __future__ import annotations
 
 import asyncio
 import io
-from datetime import datetime
 from typing import Any
 
 import structlog
 
 from app.domain.models.report import (
-    ReportData, ReportType, SeverityLevel, VulnDetail, AssetSummary,
+    ReportData,
+    ReportType,
 )
 
 logger = structlog.get_logger(__name__)
@@ -62,11 +62,7 @@ class DocxRenderer:
 
     def _build_docx(self, data: ReportData, charts: dict[str, bytes]) -> bytes:
         from docx import Document
-        from docx.shared import Inches, Pt, RGBColor, Cm
-        from docx.enum.text import WD_ALIGN_PARAGRAPH
-        from docx.enum.table import WD_TABLE_ALIGNMENT
-        from docx.oxml.ns import qn
-        from docx.oxml import OxmlElement
+        from docx.shared import Cm
 
         doc = Document()
 
@@ -115,8 +111,8 @@ class DocxRenderer:
     # ── Section builders ──────────────────────────────────────
 
     def _add_cover(self, doc: Any, data: ReportData) -> None:
-        from docx.shared import Pt, RGBColor
         from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.shared import Pt
 
         doc.add_paragraph()
         doc.add_paragraph()
@@ -165,7 +161,7 @@ class DocxRenderer:
             run.font.size = Pt(8)
 
     def _add_executive_section(self, doc: Any, data: ReportData, charts: dict) -> None:
-        from docx.shared import Pt, Inches
+        from docx.shared import Inches
 
         self._add_heading(doc, "Executive Summary", level=1)
         doc.add_paragraph(data.executive_summary)
@@ -204,7 +200,7 @@ class DocxRenderer:
         doc.add_paragraph()
 
     def _add_asset_section(self, doc: Any, data: ReportData, charts: dict) -> None:
-        from docx.shared import Inches, Pt
+        from docx.shared import Inches
 
         doc.add_page_break()
         self._add_heading(doc, "Asset Inventory", level=1)
@@ -354,7 +350,6 @@ class DocxRenderer:
     # ── Helpers ────────────────────────────────────────────────
 
     def _add_heading(self, doc: Any, text: str, level: int = 1) -> Any:
-        from docx.shared import Pt, RGBColor
         heading = doc.add_heading(text, level=level)
         for run in heading.runs:
             run.font.color.rgb = self._rgb("accent" if level == 1 else "text")
@@ -368,7 +363,7 @@ class DocxRenderer:
         color: str = "text",
         mono: bool = False,
     ) -> None:
-        from docx.shared import Pt, RGBColor
+        from docx.shared import Pt
         cell.text = ""
         run = cell.paragraphs[0].add_run(text)
         run.font.bold = bold
@@ -385,7 +380,7 @@ class DocxRenderer:
         width: Any = None,
         caption: str = "",
     ) -> None:
-        from docx.shared import Inches, Pt
+        from docx.shared import Pt
         buf = io.BytesIO(png_bytes)
         doc.add_picture(buf, width=width)
         if caption:

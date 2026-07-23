@@ -11,7 +11,7 @@ Design:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -106,12 +106,10 @@ class VulnDetail:
 
     @property
     def age_days(self) -> int:
-        from datetime import timezone
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         detected = self.detected_at
         if detected.tzinfo is None:
-            from datetime import timezone
-            detected = detected.replace(tzinfo=timezone.utc)
+            detected = detected.replace(tzinfo=UTC)
         return (now - detected).days
 
 

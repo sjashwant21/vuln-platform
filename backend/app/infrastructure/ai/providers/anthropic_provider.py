@@ -7,7 +7,6 @@ since Claude doesn't have a native JSON mode flag (unlike OpenAI).
 """
 from __future__ import annotations
 
-import asyncio
 from collections.abc import AsyncGenerator
 
 import structlog
@@ -84,7 +83,7 @@ class AnthropicProvider:
             raise LLMProviderError("anthropic", str(exc)) from exc
         except anthropic.APIStatusError as exc:
             raise LLMProviderError("anthropic", str(exc), exc.status_code) from exc
-        except asyncio.TimeoutError as exc:
+        except TimeoutError as exc:
             raise LLMTimeoutError("anthropic", f"Timed out after {self._config.timeout_s}s") from exc
 
         content = response.content[0].text if response.content else ""

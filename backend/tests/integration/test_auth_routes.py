@@ -12,7 +12,6 @@ from typing import Any
 import pytest
 from httpx import AsyncClient
 
-
 # ── Fixtures ───────────────────────────────────────────────────
 
 REGISTER_PAYLOAD: dict[str, Any] = {
@@ -263,10 +262,11 @@ class TestMe:
     @pytest.mark.asyncio
     async def test_me_with_expired_token_returns_401(self, client: AsyncClient):
         """Generate a token that is already expired."""
-        from datetime import timedelta
-        from jose import jwt
-        from app.config import get_settings
         import time
+
+        from jose import jwt
+
+        from app.config import get_settings
 
         cfg = get_settings()
         payload = {

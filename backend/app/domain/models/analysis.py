@@ -16,7 +16,6 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-
 # ── Enumerations ───────────────────────────────────────────────
 
 class RiskLevel(str, Enum):

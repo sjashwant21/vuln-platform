@@ -17,7 +17,6 @@ should be set generously (300s+) in ProviderConfig for large models.
 """
 from __future__ import annotations
 
-import asyncio
 from collections.abc import AsyncGenerator
 
 import structlog
@@ -101,7 +100,7 @@ class LocalLLMProvider:
                 f"Cannot connect to local LLM at {self._config.base_url}. "
                 f"Is Ollama/llama.cpp running? Error: {exc}",
             ) from exc
-        except asyncio.TimeoutError as exc:
+        except TimeoutError as exc:
             raise LLMTimeoutError(
                 "local",
                 f"Local LLM timed out after {self._config.timeout_s}s. "

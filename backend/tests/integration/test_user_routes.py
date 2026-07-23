@@ -8,7 +8,6 @@ from typing import Any
 import pytest
 from httpx import AsyncClient
 
-
 REGISTER_2: dict[str, Any] = {
     "email": "bob@example.com",
     "password": "Secure123",

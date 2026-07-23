@@ -8,7 +8,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-
 # ── Request schemas ────────────────────────────────────────────
 
 class VulnerabilityInputSchema(BaseModel):
@@ -207,7 +206,6 @@ class SecurityAnalysisResponse(BaseModel):
 
 def analysis_to_response(analysis: object) -> SecurityAnalysisResponse:
     """Convert SecurityAnalysis domain object to API response."""
-    import dataclasses
     from app.domain.models.analysis import SecurityAnalysis
 
     a: SecurityAnalysis = analysis  # type: ignore[assignment]
