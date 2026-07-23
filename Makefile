@@ -3,7 +3,7 @@
 
 help:
 	@echo ""
-	@echo "  make up        Start all services (docker-compose up -d)"
+	@echo "  make up        Start all services (docker compose up -d)"
 	@echo "  make down      Stop all services"
 	@echo "  make build     Rebuild images"
 	@echo "  make migrate   Run Alembic migrations"
@@ -16,20 +16,20 @@ help:
 
 # ── Docker ─────────────────────────────────────────────────────
 up:
-	docker-compose up -d --remove-orphans
+	docker compose up -d --remove-orphans
 
 down:
-	docker-compose down
+	docker compose down
 
 build:
-	docker-compose build --no-cache
+	docker compose build --no-cache
 
 logs:
-	docker-compose logs -f api worker
+	docker compose logs -f api worker
 
 # ── Database ───────────────────────────────────────────────────
 migrate:
-	docker-compose run --rm migrate
+	docker compose run --rm migrate
 
 migrate-local:
 	cd backend && DATABASE_URL=$$(grep DATABASE_URL ../.env | cut -d= -f2) \
@@ -40,10 +40,10 @@ new-migration:
 
 # ── Shell ──────────────────────────────────────────────────────
 shell:
-	docker-compose exec api /bin/bash
+	docker compose exec api /bin/bash
 
 shell-db:
-	docker-compose exec postgres psql -U vulnassess_user vulnassess
+	docker compose exec postgres psql -U vulnassess_user vulnassess
 
 # ── Tests ──────────────────────────────────────────────────────
 test:

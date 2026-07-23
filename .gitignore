@@ -29,3 +29,19 @@ Thumbs.db
 *.swp
 
 .vercel
+
+# ── Security & Certificates ─────────────────────────────────────
+nginx/ssl/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ── Caches, Logs & Databases ────────────────────────────────────
+*.log
+celerybeat-schedule
+*.db
+*.sqlite3
+.mypy_cache/
+backend/.ruff_cache/
