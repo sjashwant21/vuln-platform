@@ -45,21 +45,29 @@ def event_loop():
 
 @pytest_asyncio.fixture(scope="session")
 async def db_engine():
+    import os
+    from alembic.config import Config
+    from alembic import command
+    
     cfg = get_settings()
+    
+    # Ensure DATABASE_URL is in environment for alembic env.py
+    os.environ["DATABASE_URL"] = str(cfg.database_url)
+    
+    # Run Alembic migrations to setup the test schema exactly as in prod
+    alembic_cfg = Config("alembic.ini")
+    command.upgrade(alembic_cfg, "head")
+
     engine = create_async_engine(
         cfg.database_url,
         echo=False,
         pool_pre_ping=True,
     )
-    # Create all tables once
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
 
     yield engine
 
-    # Drop all tables after entire test session
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    # Cleanly remove everything after test session
+    command.downgrade(alembic_cfg, "base")
     await engine.dispose()
 
 

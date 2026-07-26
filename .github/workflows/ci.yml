@@ -70,7 +70,6 @@ jobs:
 
       - name: Run Pytest with Coverage
         working-directory: ./backend
-        continue-on-error: true
         run: pytest tests/ --cov=app -v --tb=short
 
   frontend-ci:
