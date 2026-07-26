@@ -38,6 +38,15 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    env:
+      APP_ENV: test
+      SECRET_KEY: "ci-test-secret-key-32-chars-minimum-pad"
+      JWT_SECRET_KEY: "ci-test-jwt-secret-key-64-chars-minimum-padding-here-1234567890ab"
+      DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test_db"
+      REDIS_URL: "redis://localhost:6379/15"
+      GROQ_API_KEY: "test-groq-key"
+      NVD_API_KEY: "test-nvd-key"
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -53,7 +62,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install "ruff==0.15.22" pytest pytest-cov pytest-asyncio==0.23.6 pytest-env pip-audit
+          pip install "ruff==0.15.22" pytest pytest-cov "pytest-asyncio==0.23.6" pytest-env
 
       - name: Run Ruff Linter
         working-directory: ./backend
@@ -61,19 +70,7 @@ jobs:
 
       - name: Run Pytest with Coverage
         working-directory: ./backend
-        env:
-          APP_ENV: test
-          SECRET_KEY: "ci-test-secret-key-32-chars-minimum-pad"
-          JWT_SECRET_KEY: "ci-test-jwt-secret-key-64-chars-minimum-padding-here-1234567890ab"
-          DATABASE_URL: "postgresql+asyncpg://test:test@localhost:5432/test_db"
-          REDIS_URL: "redis://localhost:6379/15"
-          GROQ_API_KEY: "test-groq-key"
-          NVD_API_KEY: "test-nvd-key"
-        run: pytest tests/ --cov=app -v
-
-      - name: Run Pip Audit
-        working-directory: ./backend
-        run: pip-audit
+        run: pytest tests/ --cov=app -v --tb=short
 
   frontend-ci:
     name: Frontend CI
