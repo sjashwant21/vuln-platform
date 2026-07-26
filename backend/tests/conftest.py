@@ -11,6 +11,7 @@ Database strategy:
 This means tests run at full transaction isolation without
 needing to reset sequences or truncate tables.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -20,7 +21,6 @@ from typing import Any
 
 import pytest
 import pytest_asyncio
-from alembic import command
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
@@ -30,10 +30,12 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from alembic import command
 from app.config import get_settings
 from app.main import create_app
 
 # ── Event loop ─────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -45,13 +47,14 @@ def event_loop():
 
 # ── Database engine (session-scoped — created once) ────────────
 
+
 @pytest_asyncio.fixture(scope="session")
 async def db_engine():
     cfg = get_settings()
-    
+
     # Ensure DATABASE_URL is in environment for alembic env.py
     os.environ["DATABASE_URL"] = str(cfg.database_url)
-    
+
     # Run Alembic migrations to setup the test schema exactly as in prod
     alembic_cfg = Config("alembic.ini")
     command.upgrade(alembic_cfg, "head")
@@ -71,14 +74,15 @@ async def db_engine():
 
 # ── Per-test DB connection with savepoint rollback ─────────────
 
+
 @pytest_asyncio.fixture
 async def db_connection(db_engine) -> AsyncGenerator[AsyncConnection, None]:
     """One connection per test, rolled back after."""
     async with db_engine.connect() as conn:
-        await conn.begin()            # outer transaction
-        await conn.begin_nested()     # SAVEPOINT — rollback target
+        await conn.begin()  # outer transaction
+        await conn.begin_nested()  # SAVEPOINT — rollback target
         yield conn
-        await conn.rollback()         # rolls back to SAVEPOINT
+        await conn.rollback()  # rolls back to SAVEPOINT
 
 
 @pytest_asyncio.fixture
@@ -96,6 +100,7 @@ async def db_session(db_connection: AsyncConnection) -> AsyncGenerator[AsyncSess
 
 
 # ── Override FastAPI's get_db_session with the test session ────
+
 
 @pytest_asyncio.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
@@ -122,6 +127,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
 
 # ── Common data factories ───────────────────────────────────────
+
 
 @pytest.fixture
 def register_payload() -> dict[str, Any]:
