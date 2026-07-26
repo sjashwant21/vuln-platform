@@ -105,7 +105,9 @@ services:
 
   # ── Nginx reverse proxy ──────────────────────────────────────
   nginx:
-    image: nginx:1.25-alpine
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
       - "80:80"
