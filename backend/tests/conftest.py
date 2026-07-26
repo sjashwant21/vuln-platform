@@ -14,11 +14,14 @@ needing to reset sequences or truncate tables.
 from __future__ import annotations
 
 import asyncio
+import os
 from collections.abc import AsyncGenerator
 from typing import Any
 
 import pytest
 import pytest_asyncio
+from alembic import command
+from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -28,7 +31,6 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.config import get_settings
-from app.infrastructure.database.models import Base
 from app.main import create_app
 
 # ── Event loop ─────────────────────────────────────────────────
@@ -45,10 +47,6 @@ def event_loop():
 
 @pytest_asyncio.fixture(scope="session")
 async def db_engine():
-    import os
-    from alembic.config import Config
-    from alembic import command
-    
     cfg = get_settings()
     
     # Ensure DATABASE_URL is in environment for alembic env.py
