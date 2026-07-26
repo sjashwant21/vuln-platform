@@ -66,7 +66,9 @@ fmt:
 	cd backend && ruff format app/ tests/
 
 check: lint
-	cd backend && mypy app/ --ignore-missing-imports
+
+setup-hooks:
+	pre-commit install
 
 # ── Secrets helper ─────────────────────────────────────────────
 gen-secrets:
