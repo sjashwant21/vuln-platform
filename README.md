@@ -14,7 +14,7 @@ Table of contents
 - Environment variables
 - Database & migrations
 - Testing, linting & formatting
-- Deployment notes
+- [Deployment Guide](DEPLOYMENT.md)
 - Security
 - Contributing
 - Where to look in the code
