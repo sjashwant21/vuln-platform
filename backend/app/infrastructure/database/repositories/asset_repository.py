@@ -112,6 +112,35 @@ class SQLAssetRepository(AssetRepository):
         logger.info("asset_created", asset_id=asset.id, org_id=data.get("organization_id"))
         return asset
 
+    async def upsert_asset(self, data: dict[str, Any]) -> AssetModel:
+        """
+        Insert or update an asset.
+        Matches on organization_id and ip_address.
+        """
+        from sqlalchemy.dialects.postgresql import insert
+
+        stmt = (
+            insert(AssetModel)
+            .values(
+                id=str(uuid.uuid4()),
+                **data,
+            )
+            .on_conflict_do_update(
+                constraint="uq_assets_org_ip",
+                set_={
+                    "hostname": data.get("hostname"),
+                    "asset_type": data.get("asset_type", "unknown"),
+                    "criticality": data.get("criticality", "medium"),
+                    "last_seen_at": datetime.now(UTC),
+                    "is_active": True,
+                    "updated_at": datetime.now(UTC),
+                },
+            )
+            .returning(AssetModel)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalar_one()
+
     async def update(
         self, asset_id: str, org_id: str, data: dict[str, Any]
     ) -> AssetModel | None:

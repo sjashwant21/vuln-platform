@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.middleware.request_context import RequestContextMiddleware
-from app.api.v1 import analysis, auth, health, intelligence, organizations, reports, users
+from app.api.v1 import analysis, auth, health, intelligence, organizations, reports, scans, users
 from app.config import get_settings
 from app.domain.exceptions import (
     AuthenticationError,
@@ -226,6 +226,7 @@ def create_app() -> FastAPI:
     app.include_router(analysis.router,      prefix=API_PREFIX)          # /v1/analysis/*
     app.include_router(intelligence.router,  prefix=API_PREFIX)          # /v1/intelligence/*
     app.include_router(reports.router,       prefix=API_PREFIX)          # /v1/reports/*
+    app.include_router(scans.router,         prefix=API_PREFIX)          # /v1/scans/*
 
     logger.info("application_ready", prefix=API_PREFIX)
     return app

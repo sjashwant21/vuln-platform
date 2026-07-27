@@ -82,6 +82,10 @@ class AssetRepository(ABC):
         ...
 
     @abstractmethod
+    async def upsert_asset(self, data: dict[str, Any]) -> Any:
+        ...
+
+    @abstractmethod
     async def update(self, asset_id: str, org_id: str, data: dict[str, Any]) -> Any | None:
         ...
 

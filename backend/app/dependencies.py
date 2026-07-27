@@ -29,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.application.dto.auth_dto import AuthenticatedUser
 from app.application.services.auth_service import AuthService
 from app.application.services.organization_service import OrganizationService
+from app.application.services.scan_service import ScanService
 from app.application.services.user_service import UserService
 from app.domain.enums import UserRole
 from app.domain.exceptions import (
@@ -39,6 +40,7 @@ from app.infrastructure.database.connection import get_db_session
 from app.infrastructure.database.repositories.organization_repository import (
     OrganizationRepository,
 )
+from app.infrastructure.database.repositories.scan_repository import SQLScanRepository
 from app.infrastructure.database.repositories.user_repository import UserRepository
 from app.infrastructure.security.audit_logger import AuditLogger
 from app.infrastructure.security.jwt_handler import jwt_handler
@@ -65,6 +67,10 @@ def get_org_repo(db: DBSession) -> OrganizationRepository:
 
 def get_audit_logger(db: DBSession) -> AuditLogger:
     return AuditLogger(db)
+
+
+def get_scan_repo(db: DBSession) -> SQLScanRepository:
+    return SQLScanRepository(db)
 
 
 # ── Service factories ───────────────────────────────────────────
@@ -97,6 +103,12 @@ def get_org_service(
     audit:    Annotated[AuditLogger,            Depends(get_audit_logger)],
 ) -> OrganizationService:
     return OrganizationService(org_repo=org_repo, audit=audit)
+
+
+def get_scan_service(
+    scan_repo: Annotated[SQLScanRepository, Depends(get_scan_repo)],
+) -> ScanService:
+    return ScanService(scan_repo=scan_repo)
 
 
 # ── Authentication guard ────────────────────────────────────────
