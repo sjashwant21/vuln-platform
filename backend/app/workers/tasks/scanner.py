@@ -143,3 +143,7 @@ async def _run_nmap_scan_async(job_id: str) -> None:
 def run_nmap_scan_task(self, job_id: str) -> None:
     """Celery task entrypoint."""
     asyncio.run(_run_nmap_scan_async(job_id))
+
+    # Trigger AI Analyst to generate remediation plans
+    from app.workers.tasks.analyst import run_ai_analysis_task
+    run_ai_analysis_task.delay(job_id)
