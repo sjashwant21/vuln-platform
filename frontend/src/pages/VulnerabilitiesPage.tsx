@@ -15,6 +15,8 @@ import { usePermission } from '@/hooks/usePermission'
 import { ShieldAlert, Sparkles, CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
 import type { Vulnerability, VulnStatus, Severity } from '@/types'
 import { formatDistanceToNow } from 'date-fns'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 const LIMIT = 25
 
@@ -240,9 +242,11 @@ export function VulnerabilitiesPage() {
                 </div>
               </div>
             ) : remediation ? (
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono leading-relaxed max-h-96 overflow-y-auto">
-                  {remediation.recommendation_markdown}
+              <div className="prose prose-sm dark:prose-invert max-w-none w-full">
+                <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 rounded-xl p-6 overflow-y-auto max-h-[60vh]">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {remediation.recommendation_markdown}
+                  </ReactMarkdown>
                 </div>
                 <div className="flex items-center gap-3 mt-3">
                   {remediation.confidence_score && (

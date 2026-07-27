@@ -11,7 +11,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { Modal } from '@/components/ui/Modal'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { usePermission } from '@/hooks/usePermission'
-import { Scan, Plus, X, Play, RefreshCw, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
+import { Scan, Plus, X, Play, RefreshCw, Clock, CheckCircle, XCircle, AlertTriangle, Sparkles } from 'lucide-react'
 import type { ScanJob, ScanType } from '@/types'
 import { formatDistanceToNow, format } from 'date-fns'
 
@@ -190,6 +190,43 @@ export function ScansPage() {
             {selected.error_message && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
                 <p className="text-sm text-red-600 dark:text-red-400">{selected.error_message}</p>
+              </div>
+            )}
+            
+            {selected.result_summary?.executive_summary && (
+              <div className="bg-brand-50 dark:bg-brand-900/10 border border-brand-200 dark:border-brand-800 rounded-xl p-5">
+                <h4 className="font-semibold text-brand-900 dark:text-brand-100 mb-2 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-brand-500" /> AI Executive Summary
+                </h4>
+                <p className="text-sm text-brand-900 dark:text-brand-100 mb-2 font-medium">
+                  {selected.result_summary.executive_summary.headline}
+                </p>
+                <p className="text-sm text-brand-800 dark:text-brand-200 mb-4">
+                  {selected.result_summary.executive_summary.business_impact}
+                </p>
+                
+                {selected.result_summary.management_summary && (
+                  <div className="mt-4 pt-4 border-t border-brand-200 dark:border-brand-800/50">
+                    <h5 className="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 mb-3">Management Overview</h5>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-brand-500 dark:text-brand-400 mb-1">Security Score</p>
+                        <p className="text-xl font-bold text-brand-700 dark:text-brand-300">
+                          {selected.result_summary.management_summary.security_score}
+                          <span className="text-sm font-medium ml-2 px-2 py-0.5 rounded-full bg-brand-100 dark:bg-brand-800/50">
+                            {selected.result_summary.management_summary.score_label}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-brand-500 dark:text-brand-400 mb-1">Investment Needed</p>
+                        <p className="text-sm font-medium text-brand-700 dark:text-brand-300">
+                          {selected.result_summary.management_summary.investment_needed}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {findings && findings.length > 0 && (

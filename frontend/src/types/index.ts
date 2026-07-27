@@ -39,7 +39,7 @@ export interface ScanJob {
   id: string; organization_id: string; scan_type: ScanType; status: ScanStatus
   target_ips: string[]; started_at: string | null; completed_at: string | null
   created_at: string; error_message: string | null
-  result_summary: { hosts_discovered?: number; ports_scanned?: number; vulnerabilities_found?: number; duration_seconds?: number }
+  result_summary: { hosts_discovered?: number; ports_scanned?: number; vulnerabilities_found?: number; duration_seconds?: number; executive_summary?: any; management_summary?: any }
 }
 export interface ScanFinding {
   id: string; scan_job_id: string; asset_id: string; port: number | null
