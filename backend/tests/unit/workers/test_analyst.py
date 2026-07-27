@@ -4,28 +4,25 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.enums import ScanStatus, VulnerabilityStatus
-
+from app.domain.enums import ScanStatus
 from app.infrastructure.database.models import AssetModel, ScanFindingModel, ScanJobModel
 from app.workers.tasks.analyst import _run_ai_analysis_async
 
-
-from app.domain.models.analysis import RiskLevel, RemediationEffort
 
 @pytest.fixture
 def mock_ai_service():
     with patch("app.workers.tasks.analyst.create_analyst_service") as mock_create:
         svc_mock = MagicMock()
         mock_create.return_value = svc_mock
-        
+
         # Setup a dummy response using MagicMock to avoid dataclass init errors
         response_mock = MagicMock()
         response_mock.model_name = "test-model"
-        
+
         # Executive & Management summaries (can be just dicts or simple objects for jsonable_encoder)
         response_mock.executive_summary = {"overall_risk": "High"}
         response_mock.management_summary = {"risk_trend": "Stable"}
-        
+
         # Technical analysis
         finding_mock = MagicMock()
         finding_mock.cve_id = "CVE-2024-1234"
@@ -34,7 +31,7 @@ def mock_ai_service():
         finding_mock.affected_service = "http"
         finding_mock.affected_port = 80
         response_mock.technical_analysis.findings = [finding_mock]
-        
+
         # Remediation
         plan_mock = MagicMock()
         plan_mock.cve_id = "CVE-2024-1234"
@@ -43,20 +40,20 @@ def mock_ai_service():
         plan_mock.priority = 1
         plan_mock.prerequisites = []
         plan_mock.references = []
-        
+
         step_mock = MagicMock()
         step_mock.step_number = 1
         step_mock.title = "Run update"
         step_mock.description = "Update the package"
         step_mock.commands = ["apt-get update"]
         plan_mock.steps = [step_mock]
-        
+
         response_mock.remediation_recommendations.short_term_actions = [plan_mock]
         response_mock.remediation_recommendations.long_term_actions = []
-        
+
         # Risk prioritization
         response_mock.risk_prioritization.prioritized_vulnerabilities = []
-        
+
         svc_mock.analyse = AsyncMock(return_value=response_mock)
         yield svc_mock
 
@@ -117,7 +114,7 @@ async def test_run_ai_analysis_success(db_session: AsyncSession, patch_session_f
     user = UserModel(email="test2@test.com", password_hash="hash", full_name="Test User 2", organization_id=org.id)
     db_session.add(user)
     await db_session.flush()
-    
+
     asset = AssetModel(
         organization_id=org.id,
         ip_address="127.0.0.1",
@@ -164,9 +161,9 @@ async def test_run_ai_analysis_success(db_session: AsyncSession, patch_session_f
 
     # 1. Verify that the ai service was called
     mock_ai_service.analyse.assert_called_once()
-    
+
     # 2. Verify vulnerabilities were created
-    from app.infrastructure.database.models import VulnerabilityModel, RemediationPlanModel
+    from app.infrastructure.database.models import RemediationPlanModel, VulnerabilityModel
     vuln_count = (await db_session.execute(select(VulnerabilityModel))).scalars().all()
     assert len(vuln_count) == 1
     assert vuln_count[0].title == "Test Vuln"

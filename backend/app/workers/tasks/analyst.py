@@ -30,7 +30,7 @@ logger = structlog.get_logger(__name__)
 
 async def _run_ai_analysis_async(job_id: str) -> None:
     """Async core logic for AI analysis."""
-    
+
     # 1. Fetch scan findings
     factory = get_session_factory()
     async with factory() as session:

@@ -77,9 +77,9 @@ async def get_scan_details(
         job_id=scan_id,
         org_id=current_user.org_id,
     )
-    
+
     user_role = UserRole(current_user.role)
     if not user_role.is_admin_or_above() and job.initiated_by_id != current_user.user_id:
         raise AuthorizationError("You do not have permission to view this scan")
-        
+
     return ScanJobResponse.model_validate(job)

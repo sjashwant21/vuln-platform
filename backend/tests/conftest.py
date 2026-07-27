@@ -15,13 +15,13 @@ needing to reset sequences or truncate tables.
 from __future__ import annotations
 
 import os
+
 os.environ["APP_ENV"] = "test"
 from collections.abc import AsyncGenerator
 from typing import Any
 
 import pytest
 import pytest_asyncio
-from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
@@ -31,7 +31,6 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool
 
-from alembic import command
 from app.config import get_settings
 from app.main import create_app
 from app.workers.celery_app import celery_app
@@ -65,7 +64,7 @@ async def db_engine():
     # Cleanly remove everything after test session
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
-        
+
     await engine.dispose()
 
 
