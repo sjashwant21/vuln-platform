@@ -33,20 +33,20 @@ from sqlalchemy.pool import NullPool
 from alembic import command
 from app.config import get_settings
 from app.main import create_app
+from app.workers.celery_app import celery_app
+
+# Configure Celery for testing
+celery_app.conf.broker_url = "memory://"
+celery_app.conf.result_backend = "cache+memory://"
+celery_app.conf.task_always_eager = False
 
 # ── Database engine (session-scoped — created once) ────────────
 
 
-@pytest.fixture(scope="session")
-def db_engine():
+@pytest_asyncio.fixture(scope="session")
+async def db_engine():
+    from app.infrastructure.database.models import Base
     cfg = get_settings()
-
-    # Ensure DATABASE_URL is in environment for alembic env.py
-    os.environ["DATABASE_URL"] = str(cfg.database_url)
-
-    # Run Alembic migrations to setup the test schema exactly as in prod
-    alembic_cfg = Config("alembic.ini")
-    command.upgrade(alembic_cfg, "head")
 
     engine = create_async_engine(
         cfg.database_url,
@@ -54,11 +54,18 @@ def db_engine():
         poolclass=NullPool,
     )
 
+    # Initialize a clean database schema
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+
     yield engine
 
     # Cleanly remove everything after test session
-    command.downgrade(alembic_cfg, "base")
-    engine.sync_engine.dispose()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        
+    await engine.dispose()
 
 
 # ── Per-test DB connection with savepoint rollback ─────────────

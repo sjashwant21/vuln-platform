@@ -16,7 +16,7 @@ from app.domain.models.analysis import (
     ProviderConfig,
     ServiceInput,
 )
-from app.infrastructure.database.connection import session_factory
+from app.infrastructure.database.connection import get_session_factory
 from app.infrastructure.database.models import (
     AssetModel,
     ScanJobModel,
@@ -29,7 +29,11 @@ logger = structlog.get_logger(__name__)
 
 
 async def _run_ai_analysis_async(job_id: str) -> None:
-    async with session_factory() as session:
+    """Async core logic for AI analysis."""
+    
+    # 1. Fetch scan findings
+    factory = get_session_factory()
+    async with factory() as session:
         job = (
             await session.execute(
                 select(ScanJobModel)

@@ -28,8 +28,8 @@ async def launch_scan(
     The job is queued to the Celery workers and executed asynchronously.
     """
     job = await scan_service.create_scan_job(
-        org_id=current_user.organization_id,
-        user_id=current_user.id,
+        org_id=current_user.org_id,
+        user_id=current_user.user_id,
         data=body,
     )
     return ScanJobResponse.model_validate(job)
@@ -49,7 +49,7 @@ async def list_scans(
 ) -> list[ScanJobResponse]:
     """List paginated scan jobs for the current organization."""
     jobs, _ = await scan_service.get_scan_jobs(
-        org_id=current_user.organization_id,
+        org_id=current_user.org_id,
         limit=limit,
         offset=offset,
         status=status,
@@ -70,6 +70,6 @@ async def get_scan_details(
     """Get full details of a specific scan job, including its findings."""
     job = await scan_service.get_scan_job_details(
         job_id=scan_id,
-        org_id=current_user.organization_id,
+        org_id=current_user.org_id,
     )
     return ScanJobResponse.model_validate(job)

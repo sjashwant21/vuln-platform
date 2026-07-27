@@ -6,7 +6,7 @@ import structlog
 from celery import shared_task
 
 from app.domain.enums import ScanStatus
-from app.infrastructure.database.connection import session_factory
+from app.infrastructure.database.connection import get_session_factory
 from app.infrastructure.database.repositories.asset_repository import SQLAssetRepository
 from app.infrastructure.database.repositories.scan_repository import SQLScanRepository
 
@@ -15,7 +15,8 @@ logger = structlog.get_logger(__name__)
 
 async def _run_nmap_scan_async(job_id: str) -> None:
     """Async core logic for nmap scanning."""
-    async with session_factory() as session:
+    factory = get_session_factory()
+    async with factory() as session:
         scan_repo = SQLScanRepository(session)
         asset_repo = SQLAssetRepository(session)
 
