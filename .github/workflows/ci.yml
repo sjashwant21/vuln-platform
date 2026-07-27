@@ -90,6 +90,10 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
+      - name: Run ESLint
+        working-directory: ./frontend
+        run: npx eslint . --max-warnings 0
+
       - name: Build Application
         working-directory: ./frontend
         run: npm run build
