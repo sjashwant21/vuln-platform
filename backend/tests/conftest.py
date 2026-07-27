@@ -34,17 +34,6 @@ from alembic import command
 from app.config import get_settings
 from app.main import create_app
 
-# ── Event loop ─────────────────────────────────────────────────
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Single event loop for the entire test session."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
 # ── Database engine (session-scoped — created once) ────────────
 
 
