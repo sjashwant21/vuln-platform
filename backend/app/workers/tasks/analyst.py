@@ -97,9 +97,9 @@ async def _run_ai_analysis_async(job_id: str) -> None:
                 asset_id=asset.id,
                 asset_hostname=asset.hostname,
                 asset_ip=asset.ip_address,
-                asset_os=asset.os,
+                asset_os=asset.os_fingerprint,
                 asset_criticality=asset.criticality,
-                internet_exposed=asset.internet_exposed,
+                internet_exposed=asset.tags.get("internet_exposed", False),
                 services=tuple(services),
                 vulnerabilities=(),
                 org_name="Organization",  # Placeholder since we don't fetch org

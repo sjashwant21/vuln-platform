@@ -42,10 +42,13 @@ class SQLScanRepository(ScanRepository):
         limit: int,
         offset: int,
         status: ScanStatus | None = None,
+        user_id: str | None = None,
     ) -> tuple[list[ScanJobModel], int]:
         conditions: list[Any] = [ScanJobModel.organization_id == org_id]
         if status:
             conditions.append(ScanJobModel.status == status.value)
+        if user_id:
+            conditions.append(ScanJobModel.initiated_by_id == user_id)
 
         count_stmt = (
             select(func.count())

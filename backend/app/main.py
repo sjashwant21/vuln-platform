@@ -18,7 +18,11 @@ import structlog
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
+from app.api.limiter import limiter
 from app.api.middleware.request_context import RequestContextMiddleware
 from app.api.v1 import analysis, auth, health, intelligence, organizations, reports, scans, users
 from app.config import get_settings
@@ -118,11 +122,16 @@ def create_app() -> FastAPI:
             "AI-Powered Vulnerability Assessment Platform. "
             "Multi-tenant, async, production-grade."
         ),
-        docs_url="/docs",
-        redoc_url="/redoc",
-        openapi_url="/openapi.json",
+        docs_url=None if cfg.is_production else "/docs",
+        redoc_url=None if cfg.is_production else "/redoc",
+        openapi_url=None if cfg.is_production else "/openapi.json",
         lifespan=lifespan,
     )
+    
+    from slowapi import _rate_limit_exceeded_handler
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
 
     # ── Middleware (applied in reverse order — last added = outermost) ──
 

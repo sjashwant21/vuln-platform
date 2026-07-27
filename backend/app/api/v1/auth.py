@@ -9,11 +9,11 @@ Routes are intentionally thin:
 
 All business logic, password policy, and token management live in AuthService.
 """
-from __future__ import annotations
 
 import structlog
 from fastapi import APIRouter, Request, status
 
+from app.api.limiter import limiter
 from app.api.schemas.auth_schemas import (
     ChangePasswordRequest,
     LoginRequest,
@@ -57,6 +57,7 @@ def _get_client_ip(request: Request) -> str | None:
     status_code=status.HTTP_201_CREATED,
     summary="Register a new organisation and owner account",
 )
+@limiter.limit("5/minute")
 async def register(
     body:    RegisterRequest,
     service: AuthSvc,
@@ -115,6 +116,7 @@ async def register(
     response_model=TokenResponse,
     summary="Authenticate and receive a token pair",
 )
+@limiter.limit("5/minute")
 async def login(
     body:    LoginRequest,
     service: AuthSvc,

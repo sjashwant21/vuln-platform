@@ -116,6 +116,7 @@ class ScanRepository(ABC):
         limit: int,
         offset: int,
         status: ScanStatus | None = None,
+        user_id: str | None = None,
     ) -> tuple[list[Any], int]:
         ...
 

@@ -7,7 +7,8 @@ from fastapi import APIRouter, Depends, Query, status
 from app.api.schemas.scan_schemas import ScanJobCreate, ScanJobResponse
 from app.application.services.scan_service import ScanService
 from app.dependencies import CurrentUser, get_scan_service
-from app.domain.enums import ScanStatus
+from app.domain.enums import ScanStatus, UserRole
+from app.domain.exceptions import AuthorizationError
 
 router = APIRouter(prefix="/scans", tags=["Scans"])
 
@@ -48,11 +49,15 @@ async def list_scans(
     status: ScanStatus | None = None,
 ) -> list[ScanJobResponse]:
     """List paginated scan jobs for the current organization."""
+    user_role = UserRole(current_user.role)
+    user_id = current_user.user_id if not user_role.is_admin_or_above() else None
+
     jobs, _ = await scan_service.get_scan_jobs(
         org_id=current_user.org_id,
         limit=limit,
         offset=offset,
         status=status,
+        user_id=user_id,
     )
     return [ScanJobResponse.model_validate(job) for job in jobs]
 
@@ -72,4 +77,9 @@ async def get_scan_details(
         job_id=scan_id,
         org_id=current_user.org_id,
     )
+    
+    user_role = UserRole(current_user.role)
+    if not user_role.is_admin_or_above() and job.initiated_by_id != current_user.user_id:
+        raise AuthorizationError("You do not have permission to view this scan")
+        
     return ScanJobResponse.model_validate(job)

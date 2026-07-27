@@ -68,9 +68,10 @@ class ScanService:
         limit: int = 50,
         offset: int = 0,
         status: ScanStatus | None = None,
+        user_id: str | None = None,
     ) -> tuple[list[ScanJobModel], int]:
         """Get paginated scan jobs."""
-        return await self._scan_repo.list_jobs_by_org(org_id, limit, offset, status)
+        return await self._scan_repo.list_jobs_by_org(org_id, limit, offset, status, user_id)
 
     async def get_scan_job_details(
         self, job_id: str, org_id: str

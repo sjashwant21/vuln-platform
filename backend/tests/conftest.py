@@ -15,6 +15,7 @@ needing to reset sequences or truncate tables.
 from __future__ import annotations
 
 import os
+os.environ["APP_ENV"] = "test"
 from collections.abc import AsyncGenerator
 from typing import Any
 
