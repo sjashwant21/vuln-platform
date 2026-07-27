@@ -14,7 +14,6 @@ needing to reset sequences or truncate tables.
 
 from __future__ import annotations
 
-import asyncio
 import os
 from collections.abc import AsyncGenerator
 from typing import Any
