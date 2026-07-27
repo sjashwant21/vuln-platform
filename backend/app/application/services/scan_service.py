@@ -5,7 +5,7 @@ import structlog
 from app.api.schemas.scan_schemas import ScanJobCreate
 from app.application.interfaces.repositories import ScanRepository
 from app.domain.enums import ScanStatus
-from app.domain.exceptions import NotFoundError
+from app.domain.exceptions import ResourceNotFoundError
 from app.infrastructure.database.models import ScanJobModel
 
 logger = structlog.get_logger(__name__)
@@ -78,5 +78,5 @@ class ScanService:
         """Get full details of a scan job, including findings."""
         job = await self._scan_repo.get_job_by_id(job_id, org_id)
         if not job:
-            raise NotFoundError("Scan job not found.")
+            raise ResourceNotFoundError("Scan job not found.")
         return job
