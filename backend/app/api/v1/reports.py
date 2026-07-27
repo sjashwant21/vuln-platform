@@ -68,7 +68,7 @@ async def generate_report(
         report_type   = ReportType(body.report_type)
         report_format = ReportFormat(body.report_format)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
     svc = ReportService(db)
 
@@ -95,7 +95,7 @@ async def generate_report(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Report generation failed: {exc}",
-        )
+        ) from exc
 
     content_types = {
         ReportFormat.PDF:  "application/pdf",
@@ -141,7 +141,7 @@ async def preview_report(
     try:
         rt = ReportType(report_type)
     except ValueError:
-        raise HTTPException(status_code=422, detail=f"Invalid report_type: {report_type}")
+        raise HTTPException(status_code=422, detail=f"Invalid report_type: {report_type}") from None
 
     org_name = await _get_org_name(db, current_user.org_id)
     svc      = ReportService(db)

@@ -9,11 +9,14 @@ from __future__ import annotations
 
 from typing import Literal
 
+import structlog
 from fastapi import APIRouter
 from pydantic import BaseModel
 from sqlalchemy import text
 
 from app.infrastructure.database.connection import get_engine
+
+logger = structlog.get_logger(__name__)
 
 router = APIRouter(tags=["Health"])
 
@@ -39,8 +42,8 @@ async def health_check() -> HealthResponse:
         async with get_engine().connect() as conn:
             await conn.execute(text("SELECT 1"))
         db_status = "ok"
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("health_check_db_failed", error=str(e))
 
     overall: Literal["ok", "degraded", "down"] = (
         "ok" if db_status == "ok" else "degraded"

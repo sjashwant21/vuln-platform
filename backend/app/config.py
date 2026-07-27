@@ -48,7 +48,8 @@ class Settings(BaseSettings):
                     import json
                     parsed = json.loads(v)
                     return [o.strip() for o in parsed if o.strip()]
-                except Exception:
+                except Exception: # noqa: S110
+                    # Fall back to comma-separated if JSON parsing fails
                     pass
             # Fall back to comma-separated
             return [o.strip() for o in v.split(",") if o.strip()]

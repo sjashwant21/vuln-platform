@@ -169,7 +169,7 @@ def require_role(*allowed_roles: UserRole):
             raise InsufficientRoleError(
                 required=allowed_roles[0].value,
                 current=current_user.role,
-            )
+            ) from None
 
         if user_role not in allowed_roles:
             raise InsufficientRoleError(

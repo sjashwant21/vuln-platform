@@ -163,7 +163,7 @@ async def change_user_role(
         new_role = UserRole(body.role)
     except ValueError:
         from app.domain.exceptions import ValidationError
-        raise ValidationError("role", f"Invalid role '{body.role}'. Valid: analyst, admin")
+        raise ValidationError("role", f"Invalid role '{body.role}'. Valid: analyst, admin") from None
 
     dto = await service.change_role(
         target_user_id=user_id,

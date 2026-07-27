@@ -186,7 +186,10 @@ Be direct, avoid jargon, use business language."""
             return response.content[0].text if response.content else ""
         except Exception as e:
             logger.error("claude_executive_summary_failed", error=str(e))
-            return "Executive summary generation failed. Please review the technical findings below."
+            return (
+                "Executive summary generation failed. "
+                "Please review the technical findings below."
+            )
 
     def _build_prompt(
         self,
