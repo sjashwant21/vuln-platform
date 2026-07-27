@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 from alembic import command
 from app.config import get_settings
@@ -36,8 +37,8 @@ from app.main import create_app
 # ── Database engine (session-scoped — created once) ────────────
 
 
-@pytest_asyncio.fixture(scope="session")
-async def db_engine():
+@pytest.fixture(scope="session")
+def db_engine():
     cfg = get_settings()
 
     # Ensure DATABASE_URL is in environment for alembic env.py
@@ -50,14 +51,14 @@ async def db_engine():
     engine = create_async_engine(
         cfg.database_url,
         echo=False,
-        pool_pre_ping=True,
+        poolclass=NullPool,
     )
 
     yield engine
 
     # Cleanly remove everything after test session
     command.downgrade(alembic_cfg, "base")
-    await engine.dispose()
+    engine.sync_engine.dispose()
 
 
 # ── Per-test DB connection with savepoint rollback ─────────────
