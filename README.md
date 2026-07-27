@@ -3,7 +3,7 @@
 AI-powered vulnerability assessment platform — a production-ready, multi-tenant web application combining a FastAPI backend, a React + Vite frontend, background workers (Celery + Redis), and PostgreSQL persistence. It provides automated vulnerability analysis, report generation, and an AI-assisted intelligence layer (Groq/OpenAI integrations).
 
 [![CI](https://github.com/sjashwant21/vuln-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/sjashwant21/vuln-platform/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-ADD--LICENSE-lightgrey)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Summary: FastAPI backend (async), React + Vite frontend, Celery workers, Redis, Postgres. API mounted at `/v1`, docs at `/docs`, health at `/health`.
 
