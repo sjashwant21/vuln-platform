@@ -6,6 +6,7 @@ Handles:
   - Updating org settings (admin-only)
   - Plan-tier enforcement helper (used by other services)
 """
+
 from __future__ import annotations
 
 import structlog
@@ -27,6 +28,7 @@ logger = structlog.get_logger(__name__)
 
 def _to_dto(org: object) -> OrganizationDTO:
     from app.infrastructure.database.models import OrganizationModel
+
     o: OrganizationModel = org  # type: ignore[assignment]
     return OrganizationDTO(
         id=o.id,
@@ -42,13 +44,12 @@ def _to_dto(org: object) -> OrganizationDTO:
 
 
 class OrganizationService:
-
     def __init__(
         self,
         org_repo: OrganizationRepository,
         audit: AuditLogger,
     ) -> None:
-        self._orgs  = org_repo
+        self._orgs = org_repo
         self._audit = audit
 
     # ── Queries ────────────────────────────────────────────────

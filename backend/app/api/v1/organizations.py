@@ -4,6 +4,7 @@ Organization router — /v1/organizations/*
 Tenants only see their own organization.
 There is no cross-org listing endpoint exposed to tenant users.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/organizations", tags=["Organizations"])
 
 # ── GET /organizations/me ──────────────────────────────────────
 
+
 @router.get(
     "/me",
     response_model=OrgResponse,
@@ -24,7 +26,7 @@ router = APIRouter(prefix="/organizations", tags=["Organizations"])
 )
 async def get_my_org(
     current_user: CurrentUser,
-    service:      OrgSvc,
+    service: OrgSvc,
 ) -> OrgResponse:
     dto = await service.get_org(current_user.org_id)
     return OrgResponse(
@@ -42,6 +44,7 @@ async def get_my_org(
 
 # ── PATCH /organizations/me ────────────────────────────────────
 
+
 @router.patch(
     "/me",
     response_model=OrgResponse,
@@ -49,9 +52,9 @@ async def get_my_org(
     dependencies=[Depends(require_role(UserRole.ADMIN, UserRole.OWNER))],
 )
 async def update_my_org(
-    body:         UpdateOrgRequest,
+    body: UpdateOrgRequest,
     current_user: CurrentUser,
-    service:      OrgSvc,
+    service: OrgSvc,
 ) -> OrgResponse:
     dto = await service.update_org(
         org_id=current_user.org_id,

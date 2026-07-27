@@ -15,6 +15,7 @@ JSON instruction to the system prompt as fallback.
 Performance note: local models are typically much slower. The timeout
 should be set generously (300s+) in ProviderConfig for large models.
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
@@ -44,26 +45,27 @@ class LocalLLMProvider:
     def _get_client(self) -> object:
         if self._client is None:
             import openai
+
             self._client = openai.AsyncOpenAI(
-                api_key=  self._config.api_key or "none",
-                base_url= self._config.base_url or "http://localhost:11434/v1",
-                timeout=  float(self._config.timeout_s),
+                api_key=self._config.api_key or "none",
+                base_url=self._config.base_url or "http://localhost:11434/v1",
+                timeout=float(self._config.timeout_s),
             )
         return self._client
 
     async def complete(
         self,
         system_prompt: str,
-        user_prompt:   str,
+        user_prompt: str,
         *,
-        temperature:   float | None = None,
-        max_tokens:    int   | None = None,
-        json_mode:     bool         = False,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        json_mode: bool = False,
     ) -> LLMResponse:
         import openai
 
-        temp    = temperature if temperature is not None else self._config.temperature
-        max_tok = max_tokens  if max_tokens  is not None else self._config.max_tokens
+        temp = temperature if temperature is not None else self._config.temperature
+        max_tok = max_tokens if max_tokens is not None else self._config.max_tokens
 
         sys_prompt = system_prompt
         if json_mode:
@@ -74,13 +76,13 @@ class LocalLLMProvider:
 
         messages = [
             {"role": "system", "content": sys_prompt},
-            {"role": "user",   "content": user_prompt},
+            {"role": "user", "content": user_prompt},
         ]
 
         kwargs: dict = {
-            "model":       self._config.model,
+            "model": self._config.model,
             "temperature": temp,
-            "messages":    messages,
+            "messages": messages,
         }
         if max_tok:
             kwargs["max_tokens"] = max_tok
@@ -92,7 +94,7 @@ class LocalLLMProvider:
         )
 
         try:
-            client   = self._get_client()
+            client = self._get_client()
             response = await client.chat.completions.create(**kwargs)  # type: ignore[union-attr]
         except openai.APIConnectionError as exc:
             raise LLMProviderError(
@@ -109,30 +111,30 @@ class LocalLLMProvider:
         except openai.APIStatusError as exc:
             raise LLMProviderError("local", str(exc), exc.status_code) from exc
 
-        choice  = response.choices[0]
+        choice = response.choices[0]
         content = choice.message.content or ""
-        usage   = response.usage
+        usage = response.usage
 
         return LLMResponse(
-            content=           content,
-            prompt_tokens=     usage.prompt_tokens     if usage else 0,
-            completion_tokens= usage.completion_tokens if usage else 0,
-            model=             response.model or self._config.model,
-            finish_reason=     choice.finish_reason or "stop",
+            content=content,
+            prompt_tokens=usage.prompt_tokens if usage else 0,
+            completion_tokens=usage.completion_tokens if usage else 0,
+            model=response.model or self._config.model,
+            finish_reason=choice.finish_reason or "stop",
         )
 
     async def stream(
         self,
         system_prompt: str,
-        user_prompt:   str,
+        user_prompt: str,
         *,
         temperature: float | None = None,
-        max_tokens:  int   | None = None,
+        max_tokens: int | None = None,
     ) -> AsyncGenerator[str, None]:
         import openai
 
-        temp    = temperature if temperature is not None else self._config.temperature
-        max_tok = max_tokens  if max_tokens  is not None else self._config.max_tokens
+        temp = temperature if temperature is not None else self._config.temperature
+        max_tok = max_tokens if max_tokens is not None else self._config.max_tokens
 
         try:
             client = self._get_client()
@@ -142,7 +144,7 @@ class LocalLLMProvider:
                 max_tokens=max_tok,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user",   "content": user_prompt},
+                    {"role": "user", "content": user_prompt},
                 ],
                 stream=True,
             )

@@ -24,6 +24,7 @@ Three-tier matching pipeline (run in parallel):
 Results from all tiers are merged, deduplicated by CVE ID,
 then passed through the risk scoring engine.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -59,23 +60,23 @@ class CVECorrelationService:
 
     def __init__(
         self,
-        nvd_client:      NVDClient,
-        cve_cache:       CVECache,
+        nvd_client: NVDClient,
+        cve_cache: CVECache,
         version_matcher: VersionMatcher,
     ) -> None:
-        self._nvd     = nvd_client
-        self._cache   = cve_cache
+        self._nvd = nvd_client
+        self._cache = cve_cache
         self._matcher = version_matcher
 
     # ── Public interface ───────────────────────────────────────
 
     async def correlate(
         self,
-        service:       str,
-        version:       str,
-        risk_context:  RiskContext | None = None,
-        max_results:   int = 50,
-        use_live_nvd:  bool = True,
+        service: str,
+        version: str,
+        risk_context: RiskContext | None = None,
+        max_results: int = 50,
+        use_live_nvd: bool = True,
     ) -> IntelligenceReport:
         """
         Main entry point. Returns a fully scored IntelligenceReport.
@@ -108,9 +109,9 @@ class CVECorrelationService:
 
         # ── Parallel tier execution ────────────────────────────
         if use_live_nvd:
-            cache_task   = asyncio.create_task(self._tier_cache(service, version))
+            cache_task = asyncio.create_task(self._tier_cache(service, version))
             keyword_task = asyncio.create_task(self._tier_keyword(service, version))
-            cpe_task     = asyncio.create_task(self._tier_cpe(service, version))
+            cpe_task = asyncio.create_task(self._tier_cpe(service, version))
 
             tier_results = await asyncio.gather(
                 cache_task,
@@ -126,10 +127,7 @@ class CVECorrelationService:
         all_matches = self._merge_results(tier_results, service, version)
 
         # ── Risk scoring ───────────────────────────────────────
-        scored = [
-            self._score_match(match, ctx)
-            for match in all_matches
-        ]
+        scored = [self._score_match(match, ctx) for match in all_matches]
 
         # ── Sort and cap ───────────────────────────────────────
         scored.sort(key=lambda m: m.risk_score, reverse=True)
@@ -165,7 +163,7 @@ class CVECorrelationService:
         Correlate multiple (service, version) pairs.
         Uses bounded concurrency to avoid hammering NVD.
         """
-        semaphore = asyncio.Semaphore(3)   # max 3 concurrent NVD queries
+        semaphore = asyncio.Semaphore(3)  # max 3 concurrent NVD queries
 
         async def _bounded(target: dict[str, str]) -> IntelligenceReport:
             async with semaphore:
@@ -197,11 +195,11 @@ class CVECorrelationService:
                 if score >= 0.3:
                     matches.append(
                         CorrelationMatch(
-                            cve=             cve,
-                            match_method=    MatchMethod.CACHE_HIT,
-                            matched_version= version,
-                            matched_service= service,
-                            confidence=      score,
+                            cve=cve,
+                            match_method=MatchMethod.CACHE_HIT,
+                            matched_version=version,
+                            matched_service=service,
+                            confidence=score,
                         )
                     )
             logger.debug("tier_cache_complete", count=len(matches))
@@ -241,11 +239,11 @@ class CVECorrelationService:
 
                 matches.append(
                     CorrelationMatch(
-                        cve=             cve,
-                        match_method=    MatchMethod.KEYWORD,
-                        matched_version= version,
-                        matched_service= service,
-                        confidence=      confidence,
+                        cve=cve,
+                        match_method=MatchMethod.KEYWORD,
+                        matched_version=version,
+                        matched_service=service,
+                        confidence=confidence,
                     )
                 )
 
@@ -272,7 +270,7 @@ class CVECorrelationService:
                 return []
 
             all_cves: dict[str, CVE] = {}
-            for cpe in candidate_cpes[:3]:   # cap CPE searches to 3
+            for cpe in candidate_cpes[:3]:  # cap CPE searches to 3
                 try:
                     cves = await self._nvd.search_by_cpe(cpe, max_results=50)
                     for cve in cves:
@@ -291,14 +289,13 @@ class CVECorrelationService:
                 if score >= 0.4:
                     matches.append(
                         CorrelationMatch(
-                            cve=             cve,
-                            match_method=    (
-                                MatchMethod.CPE_EXACT
-                                if score >= 0.9 else MatchMethod.VERSION_RANGE
+                            cve=cve,
+                            match_method=(
+                                MatchMethod.CPE_EXACT if score >= 0.9 else MatchMethod.VERSION_RANGE
                             ),
-                            matched_version= version,
-                            matched_service= service,
-                            confidence=      score,
+                            matched_version=version,
+                            matched_service=service,
+                            confidence=score,
                         )
                     )
 
@@ -316,27 +313,27 @@ class CVECorrelationService:
         so we generate variations and let NVD match.
         """
         name_clean = service.lower().strip()
-        name_cpe   = re.sub(r"[^a-z0-9]", "_", name_clean).strip("_")
-        ver_clean  = version.lower().strip().lstrip("v")
+        name_cpe = re.sub(r"[^a-z0-9]", "_", name_clean).strip("_")
+        ver_clean = version.lower().strip().lstrip("v")
 
         # Common vendor guesses for well-known services
         _VENDOR_MAP: dict[str, str] = {
-            "nginx":       "nginx",
-            "apache":      "apache",
-            "httpd":       "apache",
+            "nginx": "nginx",
+            "apache": "apache",
+            "httpd": "apache",
             "http_server": "apache",
-            "openssh":     "openbsd",
-            "openssl":     "openssl",
-            "mysql":       "oracle",
-            "mariadb":     "mariadb",
-            "postgresql":  "postgresql",
-            "redis":       "redis",
-            "tomcat":      "apache",
-            "php":         "php",
-            "python":      "python",
-            "nodejs":      "nodejs",
-            "wordpress":   "wordpress",
-            "vsftpd":      "vsftpd_project",
+            "openssh": "openbsd",
+            "openssl": "openssl",
+            "mysql": "oracle",
+            "mariadb": "mariadb",
+            "postgresql": "postgresql",
+            "redis": "redis",
+            "tomcat": "apache",
+            "php": "php",
+            "python": "python",
+            "nodejs": "nodejs",
+            "wordpress": "wordpress",
+            "vsftpd": "vsftpd_project",
         }
 
         vendor = _VENDOR_MAP.get(name_cpe, name_cpe)
@@ -349,12 +346,10 @@ class CVECorrelationService:
 
         # Handle "apache httpd" → try both "apache:http_server" and "apache:httpd"
         if " " in name_clean:
-            parts  = name_clean.split()
-            vendor_alt  = re.sub(r"[^a-z0-9]", "_", parts[0])
+            parts = name_clean.split()
+            vendor_alt = re.sub(r"[^a-z0-9]", "_", parts[0])
             product_alt = re.sub(r"[^a-z0-9]", "_", "_".join(parts[1:]))
-            candidates.append(
-                f"cpe:2.3:a:{vendor_alt}:{product_alt}:{ver_clean}:*:*:*:*:*:*:*"
-            )
+            candidates.append(f"cpe:2.3:a:{vendor_alt}:{product_alt}:{ver_clean}:*:*:*:*:*:*:*")
 
         return candidates
 
@@ -363,8 +358,8 @@ class CVECorrelationService:
     @staticmethod
     def _merge_results(
         tier_results: list[Any],
-        service:      str,
-        version:      str,
+        service: str,
+        version: str,
     ) -> list[CorrelationMatch]:
         """
         Merge results from all tiers, keeping the highest-confidence
@@ -390,7 +385,7 @@ class CVECorrelationService:
     def _score_match(
         self,
         match: CorrelationMatch,
-        ctx:   RiskContext,
+        ctx: RiskContext,
     ) -> CorrelationMatch:
         """
         Compute a business-adjusted risk score (0.0 – 10.0).
@@ -403,33 +398,26 @@ class CVECorrelationService:
           × confidence             (0.3 – 1.0)
           → capped at 10.0
         """
-        cve   = match.cve
-        cvss  = cve.base_score or 5.0    # default to medium if unknown
+        cve = match.cve
+        cvss = cve.base_score or 5.0  # default to medium if unknown
 
         criticality_mult = ctx.asset_criticality.multiplier
-        exposure_factor  = 1.3 if ctx.internet_exposed else 1.0
-        exploit_factor   = 1.3 if cve.has_public_exploit else 1.0
+        exposure_factor = 1.3 if ctx.internet_exposed else 1.0
+        exploit_factor = 1.3 if cve.has_public_exploit else 1.0
 
         # Network-exploitable CVEs get additional weight
         if cve.cvss_v3 and cve.cvss_v3.is_network_exploitable:
             exploit_factor = min(1.5, exploit_factor + 0.2)
 
-        raw_risk = (
-            cvss
-            * criticality_mult
-            * exposure_factor
-            * exploit_factor
-            * match.confidence
-        )
+        raw_risk = cvss * criticality_mult * exposure_factor * exploit_factor * match.confidence
         risk_score = round(min(10.0, raw_risk), 2)
 
         # Return a new frozen CorrelationMatch with the risk score set
         return CorrelationMatch(
-            cve=             cve,
-            match_method=    match.match_method,
-            matched_version= match.matched_version,
-            matched_service= match.matched_service,
-            confidence=      match.confidence,
-            risk_score=      risk_score,
+            cve=cve,
+            match_method=match.match_method,
+            matched_version=match.matched_version,
+            matched_service=match.matched_service,
+            confidence=match.confidence,
+            risk_score=risk_score,
         )
-

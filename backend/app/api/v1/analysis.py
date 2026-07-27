@@ -9,6 +9,7 @@ Endpoints:
 All routes require authentication.
 Analysis is expensive (5 LLM calls) — rate limited to 5/hour per org.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -38,30 +39,30 @@ def _build_service(body: AnalyseRequest) -> object:
     cfg = get_settings()
 
     provider_map = {
-        "groq":      LLMProvider.GROQ,
+        "groq": LLMProvider.GROQ,
         "anthropic": LLMProvider.ANTHROPIC,
-        "openai":    LLMProvider.OPENAI,
-        "gemini":    LLMProvider.GEMINI,
-        "local":     LLMProvider.LOCAL,
+        "openai": LLMProvider.OPENAI,
+        "gemini": LLMProvider.GEMINI,
+        "local": LLMProvider.LOCAL,
     }
     provider = provider_map.get(body.provider, LLMProvider.GROQ)  # default: Groq
 
     # Default models per provider
     default_models = {
-        LLMProvider.GROQ:      cfg.groq_model,
+        LLMProvider.GROQ: cfg.groq_model,
         LLMProvider.ANTHROPIC: getattr(cfg, "anthropic_model", "claude-3-5-sonnet-20241022"),
-        LLMProvider.OPENAI:    "gpt-4o",
-        LLMProvider.GEMINI:    "gemini-1.5-pro",
-        LLMProvider.LOCAL:     "llama3.2",
+        LLMProvider.OPENAI: "gpt-4o",
+        LLMProvider.GEMINI: "gemini-1.5-pro",
+        LLMProvider.LOCAL: "llama3.2",
     }
 
     # API keys per provider
     api_keys = {
-        LLMProvider.GROQ:      cfg.groq_api_key,
+        LLMProvider.GROQ: cfg.groq_api_key,
         LLMProvider.ANTHROPIC: getattr(cfg, "anthropic_api_key", None),
-        LLMProvider.OPENAI:    getattr(cfg, "openai_api_key", None),
-        LLMProvider.GEMINI:    getattr(cfg, "gemini_api_key", None),
-        LLMProvider.LOCAL:     "none",
+        LLMProvider.OPENAI: getattr(cfg, "openai_api_key", None),
+        LLMProvider.GEMINI: getattr(cfg, "gemini_api_key", None),
+        LLMProvider.LOCAL: "none",
     }
 
     model = body.model or default_models[provider]
@@ -74,14 +75,15 @@ def _build_service(body: AnalyseRequest) -> object:
         )
 
     pc = ProviderConfig(
-        provider=    provider,
-        model=       model,
-        api_key=     api_key,
-        base_url=    getattr(cfg, "local_llm_base_url", None)
-                     if provider == LLMProvider.LOCAL else None,
-        timeout_s=   120,
-        temperature= 0.1,
-        max_tokens=  4096,
+        provider=provider,
+        model=model,
+        api_key=api_key,
+        base_url=getattr(cfg, "local_llm_base_url", None)
+        if provider == LLMProvider.LOCAL
+        else None,
+        timeout_s=120,
+        temperature=0.1,
+        max_tokens=4096,
     )
     return create_analyst_service(pc)
 
@@ -96,49 +98,50 @@ def _build_request(body: AnalyseRequest) -> object:
 
     services = tuple(
         ServiceInput(
-            port=     s.port,
-            protocol= s.protocol,
-            service=  s.service,
-            version=  s.version,
-            banner=   s.banner,
+            port=s.port,
+            protocol=s.protocol,
+            service=s.service,
+            version=s.version,
+            banner=s.banner,
         )
         for s in body.services
     )
 
     vulnerabilities = tuple(
         VulnerabilityInput(
-            cve_id=             v.cve_id,
-            title=              v.title,
-            severity=           v.severity,
-            cvss_score=         v.cvss_score,
-            cvss_vector=        v.cvss_vector,
-            description=        v.description,
-            service=            v.service,
-            port=               v.port,
-            affected_version=   v.affected_version,
-            has_public_exploit= v.has_public_exploit,
-            has_patch=          v.has_patch,
-            references=         tuple(v.references),
+            cve_id=v.cve_id,
+            title=v.title,
+            severity=v.severity,
+            cvss_score=v.cvss_score,
+            cvss_vector=v.cvss_vector,
+            description=v.description,
+            service=v.service,
+            port=v.port,
+            affected_version=v.affected_version,
+            has_public_exploit=v.has_public_exploit,
+            has_patch=v.has_patch,
+            references=tuple(v.references),
         )
         for v in body.vulnerabilities
     )
 
     return AnalysisRequest(
-        asset_id=           body.asset_id,
-        asset_hostname=     body.asset_hostname,
-        asset_ip=           body.asset_ip,
-        asset_os=           body.asset_os,
-        asset_criticality=  body.asset_criticality,
-        internet_exposed=   body.internet_exposed,
-        services=           services,
-        vulnerabilities=    vulnerabilities,
-        org_name=           body.org_name,
-        scan_date=          body.scan_date or datetime.now(UTC),
-        additional_context= body.additional_context,
+        asset_id=body.asset_id,
+        asset_hostname=body.asset_hostname,
+        asset_ip=body.asset_ip,
+        asset_os=body.asset_os,
+        asset_criticality=body.asset_criticality,
+        internet_exposed=body.internet_exposed,
+        services=services,
+        vulnerabilities=vulnerabilities,
+        org_name=body.org_name,
+        scan_date=body.scan_date or datetime.now(UTC),
+        additional_context=body.additional_context,
     )
 
 
 # ── POST /analysis/analyse ─────────────────────────────────────
+
 
 @router.post(
     "/analyse",
@@ -160,7 +163,7 @@ Supported providers: `anthropic` (default), `openai`, `gemini`, `local`
     """,
 )
 async def analyse(
-    body:         AnalyseRequest,
+    body: AnalyseRequest,
     current_user: CurrentUser,
 ) -> SecurityAnalysisResponse:
     from app.infrastructure.ai.provider_protocol import (
@@ -169,16 +172,16 @@ async def analyse(
         LLMTimeoutError,
     )
 
-    svc     = _build_service(body)
+    svc = _build_service(body)
     request = _build_request(body)
 
     logger.info(
         "analysis_api_request",
-        org_id=     current_user.org_id,
-        user_id=    current_user.user_id,
-        asset_id=   body.asset_id,
-        provider=   body.provider,
-        vuln_count= len(body.vulnerabilities),
+        org_id=current_user.org_id,
+        user_id=current_user.user_id,
+        asset_id=body.asset_id,
+        provider=body.provider,
+        vuln_count=len(body.vulnerabilities),
     )
 
     try:
@@ -204,6 +207,7 @@ async def analyse(
 
 # ── POST /analysis/analyse/stream ──────────────────────────────
 
+
 @router.post(
     "/analyse/stream",
     summary="Stream the management summary as it generates",
@@ -216,13 +220,13 @@ Full structured analysis must be fetched separately via POST /analyse.
     """,
 )
 async def analyse_stream(
-    body:         AnalyseRequest,
+    body: AnalyseRequest,
     current_user: CurrentUser,
 ) -> StreamingResponse:
     from app.domain.models.analysis import AnalysisStage
     from app.infrastructure.ai.provider_protocol import LLMProviderError
 
-    svc     = _build_service(body)
+    svc = _build_service(body)
     request = _build_request(body)
 
     async def _event_stream():
@@ -248,48 +252,60 @@ async def analyse_stream(
 
 # ── GET /analysis/providers ────────────────────────────────────
 
+
 @router.get(
     "/providers",
     summary="List configured LLM providers",
 )
 async def list_providers(current_user: CurrentUser) -> dict:
     from app.config import get_settings
+
     cfg = get_settings()
 
     configured = []
 
     if getattr(cfg, "groq_api_key", None):
-        configured.append({
-            "id":      "groq",
-            "name":    "Groq (LLaMA 3 70B) — Free",
-            "models":  ["llama3-70b-8192", "llama3-8b-8192", "mixtral-8x7b-32768"],
-            "default": True,
-        })
+        configured.append(
+            {
+                "id": "groq",
+                "name": "Groq (LLaMA 3 70B) — Free",
+                "models": ["llama3-70b-8192", "llama3-8b-8192", "mixtral-8x7b-32768"],
+                "default": True,
+            }
+        )
     if getattr(cfg, "anthropic_api_key", None):
-        configured.append({
-            "id":      "anthropic",
-            "name":    "Anthropic Claude",
-            "models":  ["claude-3-5-sonnet-20241022", "claude-3-opus-20240229"],
-        })
+        configured.append(
+            {
+                "id": "anthropic",
+                "name": "Anthropic Claude",
+                "models": ["claude-3-5-sonnet-20241022", "claude-3-opus-20240229"],
+            }
+        )
     if getattr(cfg, "openai_api_key", None):
-        configured.append({
-            "id":     "openai",
-            "name":   "OpenAI",
-            "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
-        })
+        configured.append(
+            {
+                "id": "openai",
+                "name": "OpenAI",
+                "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"],
+            }
+        )
     if getattr(cfg, "gemini_api_key", None):
-        configured.append({
-            "id":     "gemini",
-            "name":   "Google Gemini",
-            "models": ["gemini-1.5-pro", "gemini-1.5-flash"],
-        })
+        configured.append(
+            {
+                "id": "gemini",
+                "name": "Google Gemini",
+                "models": ["gemini-1.5-pro", "gemini-1.5-flash"],
+            }
+        )
 
     # Local is always available (may fail at runtime if Ollama not running)
-    configured.append({
-        "id":      "local",
-        "name":    "Local LLM (Ollama / llama.cpp)",
-        "models":  ["llama3.2", "mistral", "codellama", "phi3"],
-        "base_url": getattr(cfg, "local_llm_base_url", "http://localhost:11434/v1"),
-    })
+    configured.append(
+        {
+            "id": "local",
+            "name": "Local LLM (Ollama / llama.cpp)",
+            "models": ["llama3.2", "mistral", "codellama", "phi3"],
+            "base_url": getattr(cfg, "local_llm_base_url", "http://localhost:11434/v1"),
+        }
+    )
 
     return {"providers": configured}

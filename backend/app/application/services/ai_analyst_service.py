@@ -21,6 +21,7 @@ Token budget:
   - Each stage has its own max_tokens budget
   - Total token usage is tracked and returned in SecurityAnalysis metadata
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -56,11 +57,11 @@ logger = structlog.get_logger(__name__)
 
 # Per-stage token budgets — executive stages get more tokens for synthesis
 _STAGE_TOKEN_BUDGETS: dict[AnalysisStage, int] = {
-    AnalysisStage.TRIAGE:        1500,
-    AnalysisStage.TECHNICAL:     3000,
+    AnalysisStage.TRIAGE: 1500,
+    AnalysisStage.TECHNICAL: 3000,
     AnalysisStage.RISK_PRIORITY: 2000,
-    AnalysisStage.REMEDIATION:   4096,
-    AnalysisStage.EXECUTIVE:     2000,
+    AnalysisStage.REMEDIATION: 4096,
+    AnalysisStage.EXECUTIVE: 2000,
 }
 
 _MAX_RETRIES = 2
@@ -76,13 +77,13 @@ class AIAnalystService:
 
     def __init__(
         self,
-        provider:       LLMProviderProtocol,
+        provider: LLMProviderProtocol,
         prompt_builder: PromptBuilder,
-        output_parser:  OutputParser,
+        output_parser: OutputParser,
     ) -> None:
         self._provider = provider
-        self._builder  = prompt_builder
-        self._parser   = output_parser
+        self._builder = prompt_builder
+        self._parser = output_parser
 
     # ── Public interface ───────────────────────────────────────
 
@@ -94,20 +95,20 @@ class AIAnalystService:
             LLMProviderError: if the provider is unreachable
             LLMRateLimitError: if rate limited with no retry budget left
         """
-        t0           = time.perf_counter()
+        t0 = time.perf_counter()
         total_tokens = 0
         prior_outputs: dict[str, str] = {}
 
         logger.info(
             "analysis_start",
-            asset_id=     request.asset_id,
-            vuln_count=   len(request.vulnerabilities),
-            provider=     self._provider.provider_name.value,
-            model=        self._provider.model_name,
+            asset_id=request.asset_id,
+            vuln_count=len(request.vulnerabilities),
+            provider=self._provider.provider_name.value,
+            model=self._provider.model_name,
         )
 
         # ── Stages 1 + 2: Run concurrently ────────────────────
-        triage_task   = asyncio.create_task(
+        triage_task = asyncio.create_task(
             self._run_stage(AnalysisStage.TRIAGE, request, prior_outputs)
         )
         technical_task = asyncio.create_task(
@@ -146,26 +147,27 @@ class AIAnalystService:
         elapsed = time.perf_counter() - t0
 
         analysis = SecurityAnalysis(
-            request=                     request,
-            executive_summary=           exec_summary,       # type: ignore[arg-type]
-            technical_analysis=          tech_analysis,      # type: ignore[arg-type]
-            risk_prioritization=         risk_result,        # type: ignore[arg-type]
-            remediation_recommendations= remediation_result, # type: ignore[arg-type]
-            management_summary=          mgmt_result,        # type: ignore[arg-type]
-            provider=                    self._provider.provider_name,
-            model_name=                  self._provider.model_name,
-            total_tokens=                total_tokens,
-            analysis_time_s=             round(elapsed, 2),
-            generated_at=                datetime.now(UTC),
+            request=request,
+            executive_summary=exec_summary,  # type: ignore[arg-type]
+            technical_analysis=tech_analysis,  # type: ignore[arg-type]
+            risk_prioritization=risk_result,  # type: ignore[arg-type]
+            remediation_recommendations=remediation_result,  # type: ignore[arg-type]
+            management_summary=mgmt_result,  # type: ignore[arg-type]
+            provider=self._provider.provider_name,
+            model_name=self._provider.model_name,
+            total_tokens=total_tokens,
+            analysis_time_s=round(elapsed, 2),
+            generated_at=datetime.now(UTC),
         )
 
         logger.info(
             "analysis_complete",
-            asset_id=     request.asset_id,
-            total_tokens= total_tokens,
-            elapsed_s=    round(elapsed, 2),
-            risk_level=   analysis.executive_summary.overall_risk_level.value
-            if hasattr(analysis.executive_summary, "overall_risk_level") else "unknown",
+            asset_id=request.asset_id,
+            total_tokens=total_tokens,
+            elapsed_s=round(elapsed, 2),
+            risk_level=analysis.executive_summary.overall_risk_level.value
+            if hasattr(analysis.executive_summary, "overall_risk_level")
+            else "unknown",
         )
 
         return analysis
@@ -173,7 +175,7 @@ class AIAnalystService:
     async def analyse_stream(
         self,
         request: AnalysisRequest,
-        stage:   AnalysisStage = AnalysisStage.EXECUTIVE,
+        stage: AnalysisStage = AnalysisStage.EXECUTIVE,
     ) -> Any:  # AsyncGenerator[str, None]
         """
         Stream the management summary as tokens arrive.
@@ -183,8 +185,8 @@ class AIAnalystService:
         system_prompt, user_prompt = self._builder.build(stage, request)
         async for chunk in self._provider.stream(
             system_prompt=system_prompt,
-            user_prompt=  user_prompt,
-            max_tokens=   _STAGE_TOKEN_BUDGETS[stage],
+            user_prompt=user_prompt,
+            max_tokens=_STAGE_TOKEN_BUDGETS[stage],
         ):
             yield chunk
 
@@ -192,8 +194,8 @@ class AIAnalystService:
 
     async def _run_stage(
         self,
-        stage:         AnalysisStage,
-        request:       AnalysisRequest,
+        stage: AnalysisStage,
+        request: AnalysisRequest,
         prior_outputs: dict[str, str],
     ) -> tuple[Any, int]:
         """
@@ -206,16 +208,14 @@ class AIAnalystService:
 
         for attempt in range(_MAX_RETRIES + 1):
             try:
-                system_prompt, user_prompt = self._builder.build(
-                    stage, request, prior_outputs
-                )
+                system_prompt, user_prompt = self._builder.build(stage, request, prior_outputs)
 
                 response = await self._provider.complete(
                     system_prompt=system_prompt,
-                    user_prompt=  user_prompt,
-                    temperature=  0.1,
-                    max_tokens=   _STAGE_TOKEN_BUDGETS[stage],
-                    json_mode=    True,
+                    user_prompt=user_prompt,
+                    temperature=0.1,
+                    max_tokens=_STAGE_TOKEN_BUDGETS[stage],
+                    json_mode=True,
                 )
 
                 tokens = response.prompt_tokens + response.completion_tokens
@@ -231,9 +231,9 @@ class AIAnalystService:
 
                 logger.debug(
                     "stage_complete",
-                    stage=   stage.value,
-                    tokens=  tokens,
-                    attempt= attempt,
+                    stage=stage.value,
+                    tokens=tokens,
+                    attempt=attempt,
                 )
                 return result, tokens
 
@@ -241,16 +241,16 @@ class AIAnalystService:
                 last_exc = exc
                 logger.warning(
                     "stage_parse_retry",
-                    stage=   stage.value,
-                    attempt= attempt,
-                    reason=  exc.reason,
+                    stage=stage.value,
+                    attempt=attempt,
+                    reason=exc.reason,
                 )
                 if attempt < _MAX_RETRIES:
                     await asyncio.sleep(1.0 * (attempt + 1))
                     continue
 
             except LLMProviderError:
-                raise   # Provider errors don't benefit from retry here
+                raise  # Provider errors don't benefit from retry here
 
         # All retries exhausted — return degraded placeholder
         logger.error(
@@ -262,9 +262,7 @@ class AIAnalystService:
 
     # ── Degraded placeholders ──────────────────────────────────
 
-    def _degraded_placeholder(
-        self, stage: AnalysisStage, request: AnalysisRequest
-    ) -> Any:
+    def _degraded_placeholder(self, stage: AnalysisStage, request: AnalysisRequest) -> Any:
         """
         Return a safe, clearly-marked placeholder when a stage fails.
         The pipeline continues — a partial analysis is better than no analysis.
@@ -275,44 +273,44 @@ class AIAnalystService:
         if stage == AnalysisStage.TRIAGE:
             return ExecutiveSummary(
                 overall_risk_level=RiskLevel.HIGH,
-                headline=          note,
-                business_impact=   note,
-                key_findings=      (note,),
-                immediate_actions= ("Retry the analysis or review findings manually.",),
-                confidence=        0.0,
+                headline=note,
+                business_impact=note,
+                key_findings=(note,),
+                immediate_actions=("Retry the analysis or review findings manually.",),
+                confidence=0.0,
             )
         if stage == AnalysisStage.TECHNICAL:
             return TechnicalAnalysis(
-                attack_surface_summary=  note,
-                most_critical_path=      note,
-                findings=                (),
-                threat_indicators=       (),
-                lateral_movement_risk=   note,
-                data_exfiltration_risk=  note,
+                attack_surface_summary=note,
+                most_critical_path=note,
+                findings=(),
+                threat_indicators=(),
+                lateral_movement_risk=note,
+                data_exfiltration_risk=note,
             )
         if stage == AnalysisStage.RISK_PRIORITY:
             return RiskPrioritization(
-                prioritized_vulns=    (),
-                top_3_rationale=      note,
-                risk_acceptance_note= note,
+                prioritized_vulns=(),
+                top_3_rationale=note,
+                risk_acceptance_note=note,
             )
         if stage == AnalysisStage.REMEDIATION:
             return RemediationRecommendations(
-                immediate_actions=      (),
-                short_term_actions=     (),
-                long_term_actions=      (),
-                quick_wins=             (),
-                estimated_total_effort= note,
+                immediate_actions=(),
+                short_term_actions=(),
+                long_term_actions=(),
+                quick_wins=(),
+                estimated_total_effort=note,
             )
         return ManagementSummary(
-            risk_headline=           note,
-            security_score=          0,
-            score_label=             "Unknown",
-            top_risks=               (note,),
-            business_risks=          (),
-            investment_needed=       note,
-            what_happens_if_ignored= note,
-            what_we_recommend=       note,
+            risk_headline=note,
+            security_score=0,
+            score_label="Unknown",
+            top_risks=(note,),
+            business_risks=(),
+            investment_needed=note,
+            what_happens_if_ignored=note,
+            what_we_recommend=note,
         )
 
     @staticmethod
@@ -335,12 +333,13 @@ class AIAnalystService:
 
 # ── Service factory ────────────────────────────────────────────
 
+
 def create_analyst_service(config: ProviderConfig) -> AIAnalystService:
     """
     Convenience factory used by the DI container and tests.
     """
     return AIAnalystService(
-        provider=       get_provider(config),
-        prompt_builder= PromptBuilder(),
-        output_parser=  OutputParser(),
+        provider=get_provider(config),
+        prompt_builder=PromptBuilder(),
+        output_parser=OutputParser(),
     )

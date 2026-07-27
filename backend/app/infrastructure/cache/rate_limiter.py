@@ -14,6 +14,7 @@ Token bucket algorithm:
 The entire acquire/refill cycle is executed as a Lua script inside Redis,
 making it atomic without requiring WATCH/MULTI/EXEC transactions.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -64,9 +65,9 @@ return {math.floor(new_tokens), wait_ms}
 
 
 class TokenBucketResult(NamedTuple):
-    acquired:         bool
+    acquired: bool
     tokens_remaining: int
-    wait_ms:          int   # how long to wait if not acquired
+    wait_ms: int  # how long to wait if not acquired
 
 
 class RedisTokenBucket:
@@ -83,16 +84,16 @@ class RedisTokenBucket:
 
     def __init__(
         self,
-        redis: aioredis.Redis,       # type: ignore[type-arg]
-        key:   str,
-        capacity:     float,          # max tokens in bucket
-        refill_rate:  float,          # tokens per second
+        redis: aioredis.Redis,  # type: ignore[type-arg]
+        key: str,
+        capacity: float,  # max tokens in bucket
+        refill_rate: float,  # tokens per second
     ) -> None:
-        self._redis       = redis
-        self._key         = f"rate_limiter:{key}"
-        self._capacity    = capacity
+        self._redis = redis
+        self._key = f"rate_limiter:{key}"
+        self._capacity = capacity
         self._refill_rate = refill_rate
-        self._script      = self._redis.register_script(_LUA_TOKEN_BUCKET)
+        self._script = self._redis.register_script(_LUA_TOKEN_BUCKET)
 
     async def acquire(self, *, max_wait_ms: int = 35_000) -> TokenBucketResult:
         """
@@ -113,10 +114,12 @@ class RedisTokenBucket:
                 args=[self._capacity, self._refill_rate, now_ms],
             )
             tokens_remaining = int(result[0])
-            wait_ms          = int(result[1])
+            wait_ms = int(result[1])
 
             if wait_ms == 0:
-                return TokenBucketResult(acquired=True, tokens_remaining=tokens_remaining, wait_ms=0)
+                return TokenBucketResult(
+                    acquired=True, tokens_remaining=tokens_remaining, wait_ms=0
+                )
 
             # Bucket empty
             if total_waited_ms + wait_ms > max_wait_ms:
@@ -143,9 +146,9 @@ class RedisTokenBucket:
     async def current_tokens(self) -> float:
         """Inspect current token count without consuming."""
         state = await self._redis.hmget(self._key, "tokens", "last_refill_ms")
-        tokens      = float(state[0]) if state[0] else self._capacity
+        tokens = float(state[0]) if state[0] else self._capacity
         last_refill = float(state[1]) if state[1] else time.time() * 1000
-        elapsed     = (time.time() * 1000 - last_refill) / 1000.0
+        elapsed = (time.time() * 1000 - last_refill) / 1000.0
         return min(self._capacity, tokens + elapsed * self._refill_rate)
 
     async def reset(self) -> None:

@@ -22,7 +22,7 @@ def _map_trivy_severity(trivy_severity: str) -> str:
         "HIGH": "high",
         "MEDIUM": "medium",
         "LOW": "low",
-        "UNKNOWN": "info"
+        "UNKNOWN": "info",
     }
     return mapping.get(trivy_severity.upper(), "info")
 
@@ -34,9 +34,9 @@ async def _parse_trivy_report_async(job_id: str, filepath: str) -> None:
         scan_repo = SQLScanRepository(session)
         asset_repo = SQLAssetRepository(session)
 
-        job = (await session.execute(
-            select(ScanJobModel).where(ScanJobModel.id == job_id)
-        )).scalar_one_or_none()
+        job = (
+            await session.execute(select(ScanJobModel).where(ScanJobModel.id == job_id))
+        ).scalar_one_or_none()
 
         if not job:
             logger.error("scan_job_not_found", job_id=job_id)
@@ -48,7 +48,7 @@ async def _parse_trivy_report_async(job_id: str, filepath: str) -> None:
         await session.commit()
 
         try:
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, encoding="utf-8") as f:
                 report_data = json.load(f)
 
             findings_created = 0
@@ -56,15 +56,17 @@ async def _parse_trivy_report_async(job_id: str, filepath: str) -> None:
 
             for result in results:
                 target_name = result.get("Target", "unknown-target")
-                
+
                 # Upsert asset for the target (e.g. docker image)
                 # Since AssetModel requires an ip_address, we use a placeholder and put the name in hostname
-                asset = await asset_repo.upsert_asset({
-                    "organization_id": org_id,
-                    "ip_address": "0.0.0.0",
-                    "hostname": target_name,
-                    "asset_type": "container_image",
-                })
+                asset = await asset_repo.upsert_asset(
+                    {
+                        "organization_id": org_id,
+                        "ip_address": "0.0.0.0",
+                        "hostname": target_name,
+                        "asset_type": "container_image",
+                    }
+                )
                 await session.commit()
 
                 vulnerabilities = result.get("Vulnerabilities", [])
@@ -73,11 +75,11 @@ async def _parse_trivy_report_async(job_id: str, filepath: str) -> None:
                     title = vuln.get("Title", cve_id)
                     description = vuln.get("Description", "")
                     severity = _map_trivy_severity(vuln.get("Severity", "UNKNOWN"))
-                    
+
                     cvss_score = None
                     cvss_data = vuln.get("CVSS", {})
                     # Try to extract the highest CVSS v3 score available
-                    for provider, scores in cvss_data.items():
+                    for _provider, scores in cvss_data.items():
                         if "V3Score" in scores:
                             score = scores["V3Score"]
                             if cvss_score is None or score > cvss_score:
@@ -91,9 +93,9 @@ async def _parse_trivy_report_async(job_id: str, filepath: str) -> None:
                         "description": description or "No description provided.",
                         "cve_ids": [cve_id] if cve_id else [],
                         "cvss_score": cvss_score,
-                        "raw_output": vuln
+                        "raw_output": vuln,
                     }
-                    
+
                     await scan_repo.create_finding(finding_data)
                     findings_created += 1
 
@@ -103,7 +105,12 @@ async def _parse_trivy_report_async(job_id: str, filepath: str) -> None:
             await scan_repo.update_job_status(
                 job_id,
                 ScanStatus.COMPLETED,
-                extra_data={"result_summary": {"findings_count": findings_created, "trivy_targets": len(results)}}
+                extra_data={
+                    "result_summary": {
+                        "findings_count": findings_created,
+                        "trivy_targets": len(results),
+                    }
+                },
             )
             await session.commit()
 
@@ -111,9 +118,7 @@ async def _parse_trivy_report_async(job_id: str, filepath: str) -> None:
             logger.exception("trivy_parse_failed", job_id=job_id, error=str(e))
             await session.rollback()
             await scan_repo.update_job_status(
-                job_id,
-                ScanStatus.FAILED,
-                extra_data={"error_message": str(e)}
+                job_id, ScanStatus.FAILED, extra_data={"error_message": str(e)}
             )
             await session.commit()
         finally:
@@ -132,4 +137,5 @@ def parse_trivy_report_task(self, job_id: str, filepath: str) -> None:
 
     # Trigger AI Analyst to generate remediation plans for the findings
     from app.workers.tasks.analyst import run_ai_analysis_task
+
     run_ai_analysis_task.delay(job_id)

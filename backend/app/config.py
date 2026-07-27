@@ -5,6 +5,7 @@ All values come from environment variables or .env file.
 Validated by Pydantic at startup — bad config fails fast with clear messages.
 The @lru_cache ensures settings are parsed exactly once per process.
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -46,9 +47,10 @@ class Settings(BaseSettings):
             if v.startswith("["):
                 try:
                     import json
+
                     parsed = json.loads(v)
                     return [o.strip() for o in parsed if o.strip()]
-                except Exception: # noqa: S110
+                except Exception:  # noqa: S110
                     # Fall back to comma-separated if JSON parsing fails
                     pass
             # Fall back to comma-separated
@@ -116,9 +118,9 @@ class Settings(BaseSettings):
     @property
     def database_url_sync(self) -> str:
         """Synchronous URL for Alembic migrations (uses psycopg2)."""
-        return self.database_url.replace(
-            "postgresql+asyncpg://", "postgresql+psycopg2://"
-        ).replace("postgresql://", "postgresql+psycopg2://")
+        return self.database_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://").replace(
+            "postgresql://", "postgresql+psycopg2://"
+        )
 
 
 @lru_cache(maxsize=1)

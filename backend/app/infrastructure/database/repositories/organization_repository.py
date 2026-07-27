@@ -1,6 +1,7 @@
 """
 Organization (tenant) repository — SQLAlchemy 2.0 async implementation.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -17,7 +18,6 @@ logger = structlog.get_logger(__name__)
 
 
 class OrganizationRepository:
-
     def __init__(self, session: AsyncSession) -> None:
         self._s = session
 
@@ -42,8 +42,10 @@ class OrganizationRepository:
         return (await self._s.execute(stmt)).scalar_one_or_none()
 
     async def slug_exists(self, slug: str) -> bool:
-        stmt = select(func.count()).select_from(OrganizationModel).where(
-            OrganizationModel.slug == slug.lower().strip()
+        stmt = (
+            select(func.count())
+            .select_from(OrganizationModel)
+            .where(OrganizationModel.slug == slug.lower().strip())
         )
         return (await self._s.execute(stmt)).scalar_one() > 0
 
@@ -55,19 +57,21 @@ class OrganizationRepository:
         """Super-admin usage only — not exposed to tenant users."""
         base = OrganizationModel.is_active.is_(True)
         total = (
-            await self._s.execute(
-                select(func.count()).select_from(OrganizationModel).where(base)
-            )
+            await self._s.execute(select(func.count()).select_from(OrganizationModel).where(base))
         ).scalar_one()
         rows = (
-            await self._s.execute(
-                select(OrganizationModel)
-                .where(base)
-                .order_by(OrganizationModel.created_at.desc())
-                .limit(limit)
-                .offset(offset)
+            (
+                await self._s.execute(
+                    select(OrganizationModel)
+                    .where(base)
+                    .order_by(OrganizationModel.created_at.desc())
+                    .limit(limit)
+                    .offset(offset)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         return list(rows), total
 
     # ── Mutations ──────────────────────────────────────────────

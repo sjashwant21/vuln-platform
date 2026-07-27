@@ -18,6 +18,7 @@ Password policy (enforced here, not in Pydantic schema):
   - Minimum 8 characters
   - At least one uppercase, one digit
 """
+
 from __future__ import annotations
 
 import re
@@ -65,6 +66,7 @@ def _validate_password(password: str) -> None:
 
 def _user_to_dto(user: object) -> UserDTO:  # type: ignore[return]
     from app.infrastructure.database.models import UserModel
+
     u: UserModel = user  # type: ignore[assignment]
     return UserDTO(
         id=u.id,
@@ -82,6 +84,7 @@ def _user_to_dto(user: object) -> UserDTO:  # type: ignore[return]
 
 def _org_to_dto(org: object) -> OrganizationDTO:  # type: ignore[return]
     from app.infrastructure.database.models import OrganizationModel
+
     o: OrganizationModel = org  # type: ignore[assignment]
     return OrganizationDTO(
         id=o.id,
@@ -97,7 +100,6 @@ def _org_to_dto(org: object) -> OrganizationDTO:  # type: ignore[return]
 
 
 class AuthService:
-
     def __init__(
         self,
         user_repo: UserRepository,
@@ -106,11 +108,11 @@ class AuthService:
         jwt_handler: JWTHandler,
         audit: AuditLogger,
     ) -> None:
-        self._users    = user_repo
-        self._orgs     = org_repo
-        self._pw       = password_handler
-        self._jwt      = jwt_handler
-        self._audit    = audit
+        self._users = user_repo
+        self._orgs = org_repo
+        self._pw = password_handler
+        self._jwt = jwt_handler
+        self._audit = audit
 
     # ── Registration ───────────────────────────────────────────
 
@@ -236,18 +238,22 @@ class AuthService:
         Rotation means a stolen token can only be used once before invalidation.
         """
         token_hash = self._jwt.hash_refresh_token(inp.refresh_token)
-        stored     = await self._users.get_refresh_token_by_hash(token_hash)
+        stored = await self._users.get_refresh_token_by_hash(token_hash)
 
         if stored is None:
             raise InvalidTokenError("Refresh token is invalid or expired")
 
-        user = await self._users.get_by_id(stored.user_id, stored.user.organization_id if hasattr(stored, 'user') and stored.user else "")
+        user = await self._users.get_by_id(
+            stored.user_id,
+            stored.user.organization_id if hasattr(stored, "user") and stored.user else "",
+        )
 
         # Fallback: look up user by ID only
         if user is None:
             from sqlalchemy import select as sa_select
 
             from app.infrastructure.database.models import UserModel
+
             result = await self._users._s.execute(
                 sa_select(UserModel).where(UserModel.id == stored.user_id)
             )

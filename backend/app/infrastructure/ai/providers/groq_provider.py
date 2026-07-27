@@ -8,6 +8,7 @@ Model: llama3-70b-8192 (comparable to GPT-4 for security analysis).
 Groq's API is structurally identical to OpenAI's — this provider wraps
 OpenAIProvider with Groq's base URL and maps LLMProvider.GROQ.
 """
+
 from __future__ import annotations
 
 import structlog
@@ -31,13 +32,13 @@ class GroqProvider(OpenAIProvider):
     def __init__(self, config: ProviderConfig) -> None:
         # Inject Groq base URL into config
         groq_config = ProviderConfig(
-            provider=    LLMProvider.GROQ,
-            model=       config.model,
-            api_key=     config.api_key,
-            base_url=    _GROQ_BASE_URL,
-            timeout_s=   config.timeout_s,
-            temperature= config.temperature,
-            max_tokens=  config.max_tokens,
+            provider=LLMProvider.GROQ,
+            model=config.model,
+            api_key=config.api_key,
+            base_url=_GROQ_BASE_URL,
+            timeout_s=config.timeout_s,
+            temperature=config.temperature,
+            max_tokens=config.max_tokens,
         )
         super().__init__(groq_config)
         logger.info("groq_provider_init", model=config.model)

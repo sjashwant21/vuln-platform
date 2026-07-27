@@ -2,6 +2,7 @@
 Asset repository - SQLAlchemy async implementation.
 Enforces tenant isolation on every query via organization_id filter.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -141,9 +142,7 @@ class SQLAssetRepository(AssetRepository):
         result = await self._session.execute(stmt)
         return result.scalar_one()
 
-    async def update(
-        self, asset_id: str, org_id: str, data: dict[str, Any]
-    ) -> AssetModel | None:
+    async def update(self, asset_id: str, org_id: str, data: dict[str, Any]) -> AssetModel | None:
         """Update asset fields, returning updated model."""
         stmt = (
             update(AssetModel)
@@ -206,10 +205,14 @@ class SQLAssetRepository(AssetRepository):
 
     async def count_by_org(self, org_id: str) -> int:
         """Count active assets in an organization."""
-        stmt = select(func.count()).select_from(AssetModel).where(
-            and_(
-                AssetModel.organization_id == org_id,
-                AssetModel.is_active == True,  # noqa: E712
+        stmt = (
+            select(func.count())
+            .select_from(AssetModel)
+            .where(
+                and_(
+                    AssetModel.organization_id == org_id,
+                    AssetModel.is_active == True,  # noqa: E712
+                )
             )
         )
         return (await self._session.execute(stmt)).scalar_one()

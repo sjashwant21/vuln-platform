@@ -16,6 +16,7 @@ Claims in access token payload:
   jti   — unique token ID (enables blocklist if needed in future)
   iat / exp — standard claims
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -30,8 +31,7 @@ from app.domain.exceptions import InvalidTokenError, TokenExpiredError
 
 
 class JWTHandler:
-
-    ACCESS_TOKEN_TYPE  = "access"
+    ACCESS_TOKEN_TYPE = "access"
 
     def __init__(self) -> None:
         self._cfg = get_settings()
@@ -46,18 +46,18 @@ class JWTHandler:
         email: str,
     ) -> str:
         """Sign and return a JWT access token."""
-        now    = datetime.now(UTC)
+        now = datetime.now(UTC)
         expire = now + timedelta(minutes=self._cfg.jwt_access_token_expire_minutes)
 
         payload: dict[str, Any] = {
-            "sub":   user_id,
-            "org":   org_id,
-            "role":  role,
+            "sub": user_id,
+            "org": org_id,
+            "role": role,
             "email": email,
-            "type":  self.ACCESS_TOKEN_TYPE,
-            "jti":   secrets.token_hex(16),
-            "iat":   now,
-            "exp":   expire,
+            "type": self.ACCESS_TOKEN_TYPE,
+            "jti": secrets.token_hex(16),
+            "iat": now,
+            "exp": expire,
         }
 
         return jwt.encode(
@@ -103,7 +103,7 @@ class JWTHandler:
             raw_token  — send to client in HttpOnly cookie / response body
             sha256_hash — store in database
         """
-        raw   = secrets.token_urlsafe(64)
+        raw = secrets.token_urlsafe(64)
         hashed = self._hash(raw)
         return raw, hashed
 

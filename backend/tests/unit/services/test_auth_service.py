@@ -5,6 +5,7 @@ All external dependencies (repos, JWT handler, password handler, audit)
 are replaced with AsyncMock / MagicMock so these tests run without a DB
 and complete in milliseconds.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -28,6 +29,7 @@ from app.domain.exceptions import (
 )
 
 # ── Helpers ────────────────────────────────────────────────────
+
 
 def _make_user(
     *,
@@ -81,27 +83,27 @@ def _make_service(
     pw_needs_rehash: bool = False,
 ) -> tuple[AuthService, MagicMock, MagicMock, MagicMock, MagicMock, MagicMock]:
     user_repo = AsyncMock()
-    org_repo  = AsyncMock()
-    pw        = MagicMock()
-    jwt       = MagicMock()
-    audit     = AsyncMock()
+    org_repo = AsyncMock()
+    pw = MagicMock()
+    jwt = MagicMock()
+    audit = AsyncMock()
 
     # Default stubs
-    user_repo.email_exists.return_value  = email_exists
-    user_repo.get_by_email.return_value  = user
-    user_repo.create.return_value        = user or _make_user()
+    user_repo.email_exists.return_value = email_exists
+    user_repo.get_by_email.return_value = user
+    user_repo.create.return_value = user or _make_user()
     user_repo.get_refresh_token_by_hash.return_value = None
 
     org_repo.slug_exists.return_value = slug_exists
-    org_repo.create.return_value      = org or _make_org()
+    org_repo.create.return_value = org or _make_org()
 
-    pw.hash.return_value         = "$2b$12$newhashXXXXXXXXXXXXXXXXXXXXXXX"
-    pw.verify.return_value       = pw_verify
+    pw.hash.return_value = "$2b$12$newhashXXXXXXXXXXXXXXXXXXXXXXX"
+    pw.verify.return_value = pw_verify
     pw.needs_rehash.return_value = pw_needs_rehash
 
-    jwt.create_access_token.return_value    = "access.token.here"
-    jwt.create_refresh_token.return_value   = ("raw-refresh", "hashed-refresh")
-    jwt.hash_refresh_token.return_value     = "hashed-refresh"
+    jwt.create_access_token.return_value = "access.token.here"
+    jwt.create_refresh_token.return_value = ("raw-refresh", "hashed-refresh")
+    jwt.hash_refresh_token.return_value = "hashed-refresh"
     jwt.refresh_token_expires_at.return_value = datetime.now(UTC) + timedelta(days=7)
 
     svc = AuthService(
@@ -118,8 +120,8 @@ def _make_service(
 # register()
 # ══════════════════════════════════════════════════════════════════
 
-class TestRegister:
 
+class TestRegister:
     @pytest.mark.asyncio
     async def test_success_creates_org_and_user(self):
         svc, user_repo, org_repo, *_ = _make_service()
@@ -179,7 +181,7 @@ class TestRegister:
             await svc.register(
                 RegisterInput(
                     email="alice@example.com",
-                    password="weak",           # no uppercase, no digit, < 8 chars
+                    password="weak",  # no uppercase, no digit, < 8 chars
                     full_name="Alice",
                     organization_name="Acme",
                     organization_slug="acme-corp",
@@ -250,16 +252,14 @@ class TestRegister:
 # login()
 # ══════════════════════════════════════════════════════════════════
 
-class TestLogin:
 
+class TestLogin:
     @pytest.mark.asyncio
     async def test_success_returns_token_pair(self):
         user = _make_user()
         svc, *_ = _make_service(user=user, pw_verify=True)
 
-        tokens = await svc.login(
-            LoginInput(email="alice@example.com", password="Secure123")
-        )
+        tokens = await svc.login(LoginInput(email="alice@example.com", password="Secure123"))
 
         assert tokens.access_token == "access.token.here"
         assert tokens.refresh_token == "raw-refresh"
@@ -271,9 +271,7 @@ class TestLogin:
         svc, *_ = _make_service(user=user, pw_verify=False)
 
         with pytest.raises(AuthenticationError):
-            await svc.login(
-                LoginInput(email="alice@example.com", password="WrongPassword1")
-            )
+            await svc.login(LoginInput(email="alice@example.com", password="WrongPassword1"))
 
     @pytest.mark.asyncio
     async def test_nonexistent_user_raises_auth_error(self):
@@ -285,9 +283,7 @@ class TestLogin:
         user_repo.get_by_email.return_value = None
 
         with pytest.raises(AuthenticationError):
-            await svc.login(
-                LoginInput(email="nobody@example.com", password="Secure123")
-            )
+            await svc.login(LoginInput(email="nobody@example.com", password="Secure123"))
 
     @pytest.mark.asyncio
     async def test_inactive_user_raises_auth_error(self):
@@ -295,9 +291,7 @@ class TestLogin:
         svc, *_ = _make_service(user=user, pw_verify=True)
 
         with pytest.raises(AuthenticationError):
-            await svc.login(
-                LoginInput(email="alice@example.com", password="Secure123")
-            )
+            await svc.login(LoginInput(email="alice@example.com", password="Secure123"))
 
     @pytest.mark.asyncio
     async def test_failed_login_writes_audit_log(self):
@@ -316,14 +310,13 @@ class TestLogin:
         audit.log.assert_called_once()
         call_kwargs = audit.log.call_args
         from app.domain.enums import AuditAction
+
         assert call_kwargs[0][0] == AuditAction.LOGIN_FAILED
 
     @pytest.mark.asyncio
     async def test_needs_rehash_updates_password(self):
         user = _make_user()
-        svc, user_repo, _, pw, _, _ = _make_service(
-            user=user, pw_verify=True, pw_needs_rehash=True
-        )
+        svc, user_repo, _, pw, _, _ = _make_service(user=user, pw_verify=True, pw_needs_rehash=True)
 
         await svc.login(LoginInput(email="alice@example.com", password="Secure123"))
 
@@ -343,8 +336,8 @@ class TestLogin:
 # refresh()
 # ══════════════════════════════════════════════════════════════════
 
-class TestRefresh:
 
+class TestRefresh:
     @pytest.mark.asyncio
     async def test_invalid_token_raises_error(self):
         svc, user_repo, *_ = _make_service()
@@ -375,11 +368,12 @@ class TestRefresh:
 # logout()
 # ══════════════════════════════════════════════════════════════════
 
-class TestLogout:
 
+class TestLogout:
     @pytest.mark.asyncio
     async def test_logout_revokes_token(self):
         from app.application.dto.auth_dto import AuthenticatedUser
+
         user = _make_user()
         svc, user_repo, _, _, _, audit = _make_service(user=user)
 
@@ -400,8 +394,8 @@ class TestLogout:
 # change_password()
 # ══════════════════════════════════════════════════════════════════
 
-class TestChangePassword:
 
+class TestChangePassword:
     @pytest.mark.asyncio
     async def test_success_updates_hash_and_revokes_sessions(self):
         user = _make_user()

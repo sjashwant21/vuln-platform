@@ -54,10 +54,10 @@ async def upload_scan_report(
     The job is queued to the Celery workers to be parsed asynchronously.
     """
     # Save the file to a temporary location
-    temp_dir = "/tmp/vulnassess_uploads"
+    temp_dir = "/tmp/vulnassess_uploads"  # noqa: S108
     os.makedirs(temp_dir, exist_ok=True)
     temp_filepath = os.path.join(temp_dir, f"{uuid.uuid4()}.json")
-    
+
     with open(temp_filepath, "wb") as f:
         f.write(await file.read())
 

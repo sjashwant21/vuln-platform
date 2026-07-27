@@ -4,6 +4,7 @@ Auth data transfer objects.
 Plain dataclasses — no Pydantic, no ORM coupling.
 These cross the service/API boundary carrying exactly what each side needs.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -32,7 +33,7 @@ class TokenPair:
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
-    expires_in: int = 900   # seconds (15 min)
+    expires_in: int = 900  # seconds (15 min)
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,7 @@ class RefreshInput:
 @dataclass(frozen=True)
 class AuthenticatedUser:
     """Decoded JWT payload — injected into route handlers via DI."""
+
     user_id: str
     org_id: str
     role: str

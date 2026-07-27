@@ -5,6 +5,7 @@ Uses the official anthropic SDK (async client).
 Implements json_mode by appending JSON instruction to system prompt
 since Claude doesn't have a native JSON mode flag (unlike OpenAI).
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
@@ -32,6 +33,7 @@ class AnthropicProvider:
     def _get_client(self) -> object:
         if self._client is None:
             import anthropic
+
             self._client = anthropic.AsyncAnthropic(
                 api_key=self._config.api_key,
                 timeout=float(self._config.timeout_s),
@@ -41,11 +43,11 @@ class AnthropicProvider:
     async def complete(
         self,
         system_prompt: str,
-        user_prompt:   str,
+        user_prompt: str,
         *,
-        temperature:   float | None = None,
-        max_tokens:    int   | None = None,
-        json_mode:     bool         = False,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        json_mode: bool = False,
     ) -> LLMResponse:
         import anthropic
 
@@ -56,8 +58,8 @@ class AnthropicProvider:
                 "No markdown fences, no preamble, no explanation outside the JSON object."
             )
 
-        temp    = temperature if temperature is not None else self._config.temperature
-        max_tok = max_tokens  if max_tokens  is not None else self._config.max_tokens
+        temp = temperature if temperature is not None else self._config.temperature
+        max_tok = max_tokens if max_tokens is not None else self._config.max_tokens
 
         logger.debug(
             "anthropic_request",
@@ -84,29 +86,31 @@ class AnthropicProvider:
         except anthropic.APIStatusError as exc:
             raise LLMProviderError("anthropic", str(exc), exc.status_code) from exc
         except TimeoutError as exc:
-            raise LLMTimeoutError("anthropic", f"Timed out after {self._config.timeout_s}s") from exc
+            raise LLMTimeoutError(
+                "anthropic", f"Timed out after {self._config.timeout_s}s"
+            ) from exc
 
         content = response.content[0].text if response.content else ""
         return LLMResponse(
-            content=           content,
-            prompt_tokens=     response.usage.input_tokens,
-            completion_tokens= response.usage.output_tokens,
-            model=             response.model,
-            finish_reason=     response.stop_reason or "stop",
+            content=content,
+            prompt_tokens=response.usage.input_tokens,
+            completion_tokens=response.usage.output_tokens,
+            model=response.model,
+            finish_reason=response.stop_reason or "stop",
         )
 
     async def stream(
         self,
         system_prompt: str,
-        user_prompt:   str,
+        user_prompt: str,
         *,
         temperature: float | None = None,
-        max_tokens:  int   | None = None,
+        max_tokens: int | None = None,
     ) -> AsyncGenerator[str, None]:
         import anthropic
 
-        temp    = temperature if temperature is not None else self._config.temperature
-        max_tok = max_tokens  if max_tokens  is not None else self._config.max_tokens
+        temp = temperature if temperature is not None else self._config.temperature
+        max_tok = max_tokens if max_tokens is not None else self._config.max_tokens
 
         try:
             client = self._get_client()

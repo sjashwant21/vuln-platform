@@ -2,6 +2,7 @@
 Redis client wrapper with connection pooling.
 Provides typed helper methods for common cache operations.
 """
+
 from __future__ import annotations
 
 import json

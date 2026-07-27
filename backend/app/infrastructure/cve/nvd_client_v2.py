@@ -15,6 +15,7 @@ NVD API limits (June 2025):
 
 Reference: https://nvd.nist.gov/developers/vulnerabilities
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -33,8 +34,8 @@ from app.infrastructure.cache.rate_limiter import RedisTokenBucket
 logger = structlog.get_logger(__name__)
 
 _NVD_BASE = "https://services.nvd.nist.gov/rest/json/cves/2.0"
-_MAX_PAGE  = 2000    # NVD hard limit per page
-_JITTER    = 0.5     # ±0.5s random jitter on retries
+_MAX_PAGE = 2000  # NVD hard limit per page
+_JITTER = 0.5  # ±0.5s random jitter on retries
 
 
 class NVDClient:
@@ -46,7 +47,7 @@ class NVDClient:
     """
 
     def __init__(self, rate_limiter: RedisTokenBucket) -> None:
-        self._cfg     = get_settings()
+        self._cfg = get_settings()
         self._limiter = rate_limiter
         self._http: httpx.AsyncClient | None = None
 
@@ -54,7 +55,7 @@ class NVDClient:
         if self._http is None or self._http.is_closed:
             headers: dict[str, str] = {
                 "User-Agent": f"VulnAssess/{self._cfg.app_version} (security-research)",
-                "Accept":     "application/json",
+                "Accept": "application/json",
             }
             if self._cfg.nvd_api_key:
                 headers["apiKey"] = self._cfg.nvd_api_key
@@ -64,7 +65,7 @@ class NVDClient:
                 headers=headers,
                 timeout=httpx.Timeout(connect=10.0, read=30.0, write=10.0, pool=5.0),
                 follow_redirects=True,
-                http2=False,          # NVD doesn't support h2
+                http2=False,  # NVD doesn't support h2
             )
         return self._http
 
@@ -84,8 +85,8 @@ class NVDClient:
 
     async def search_by_keyword(
         self,
-        keyword:      str,
-        max_results:  int = 50,
+        keyword: str,
+        max_results: int = 50,
         published_after: datetime | None = None,
     ) -> list[CVE]:
         """
@@ -95,8 +96,8 @@ class NVDClient:
         logger.info("nvd_keyword_search", keyword=keyword, max_results=max_results)
 
         params: dict[str, Any] = {
-            "keywordSearch":  keyword,
-            "keywordExactMatch": "",    # NVD flag for exact phrase match
+            "keywordSearch": keyword,
+            "keywordExactMatch": "",  # NVD flag for exact phrase match
         }
         if published_after:
             params["pubStartDate"] = published_after.strftime("%Y-%m-%dT%H:%M:%S.000")
@@ -105,7 +106,7 @@ class NVDClient:
 
     async def search_by_cpe(
         self,
-        cpe_name:    str,
+        cpe_name: str,
         max_results: int = 100,
     ) -> list[CVE]:
         """
@@ -114,8 +115,8 @@ class NVDClient:
         """
         logger.info("nvd_cpe_search", cpe=cpe_name[:80])
         params: dict[str, Any] = {
-            "cpeName":    cpe_name,
-            "isExact":    "",
+            "cpeName": cpe_name,
+            "isExact": "",
         }
         return await self._paginate(params, max_results)
 
@@ -129,12 +130,13 @@ class NVDClient:
         Used by the background incremental sync task.
         """
         from datetime import timedelta
+
         now = datetime.now(UTC)
         start = now - timedelta(hours=hours_back)
 
         params: dict[str, Any] = {
             "lastModStartDate": start.strftime("%Y-%m-%dT%H:%M:%S.000"),
-            "lastModEndDate":   now.strftime("%Y-%m-%dT%H:%M:%S.000"),
+            "lastModEndDate": now.strftime("%Y-%m-%dT%H:%M:%S.000"),
         }
         logger.info(
             "nvd_fetch_recent",
@@ -156,17 +158,17 @@ class NVDClient:
         """
         results: list[CVE] = []
         start_index = 0
-        page_size   = min(_MAX_PAGE, max_results)
+        page_size = min(_MAX_PAGE, max_results)
 
         while len(results) < max_results:
             params = {
                 **base_params,
                 "resultsPerPage": page_size,
-                "startIndex":     start_index,
+                "startIndex": start_index,
             }
 
             data = await self._get(params)
-            total     = data.get("totalResults", 0)
+            total = data.get("totalResults", 0)
             page_data = data.get("vulnerabilities", [])
 
             for item in page_data:
@@ -265,7 +267,7 @@ class NVDClient:
     @staticmethod
     def _backoff(attempt: int) -> float:
         """Exponential backoff with ±0.5s jitter."""
-        base  = min(30.0, 2 ** attempt)
+        base = min(30.0, 2**attempt)
         jitter = random.uniform(-_JITTER, _JITTER)
         return max(0.5, base + jitter)
 
@@ -285,25 +287,25 @@ class NVDClient:
             return None
 
         description = self._extract_description(cve_data)
-        cvss_v3     = self._extract_cvss_v3(cve_data)
-        cvss_v2     = self._extract_cvss_v2(cve_data)
-        references  = self._extract_references(cve_data)
-        cwe_ids     = self._extract_cwes(cve_data)
+        cvss_v3 = self._extract_cvss_v3(cve_data)
+        cvss_v2 = self._extract_cvss_v2(cve_data)
+        references = self._extract_references(cve_data)
+        cwe_ids = self._extract_cwes(cve_data)
         cpe_matches = self._extract_cpes(cve_data)
 
         published_at = self._parse_nvd_date(cve_data.get("published"))
-        modified_at  = self._parse_nvd_date(cve_data.get("lastModified"))
+        modified_at = self._parse_nvd_date(cve_data.get("lastModified"))
 
         return CVE(
-            cve_id=      cve_id,
-            description= description,
+            cve_id=cve_id,
+            description=description,
             published_at=published_at,
-            modified_at= modified_at,
-            cvss_v3=     cvss_v3,
-            cvss_v2=     cvss_v2,
-            cwe_ids=     tuple(cwe_ids),
-            references=  tuple(references),
-            cpe_matches= tuple(cpe_matches),
+            modified_at=modified_at,
+            cvss_v3=cvss_v3,
+            cvss_v2=cvss_v2,
+            cwe_ids=tuple(cwe_ids),
+            references=tuple(references),
+            cpe_matches=tuple(cpe_matches),
         )
 
     @staticmethod
@@ -332,17 +334,17 @@ class NVDClient:
                 continue
             version = "3.1" if key == "cvssMetricV31" else "3.0"
             return CVSSMetrics(
-                version=             version,
-                base_score=          float(d.get("baseScore", 0)),
-                vector_string=       d.get("vectorString", ""),
-                attack_vector=       d.get("attackVector"),
-                attack_complexity=   d.get("attackComplexity"),
-                privileges_required= d.get("privilegesRequired"),
-                user_interaction=    d.get("userInteraction"),
-                scope=               d.get("scope"),
-                confidentiality=     d.get("confidentialityImpact"),
-                integrity=           d.get("integrityImpact"),
-                availability=        d.get("availabilityImpact"),
+                version=version,
+                base_score=float(d.get("baseScore", 0)),
+                vector_string=d.get("vectorString", ""),
+                attack_vector=d.get("attackVector"),
+                attack_complexity=d.get("attackComplexity"),
+                privileges_required=d.get("privilegesRequired"),
+                user_interaction=d.get("userInteraction"),
+                scope=d.get("scope"),
+                confidentiality=d.get("confidentialityImpact"),
+                integrity=d.get("integrityImpact"),
+                availability=d.get("availabilityImpact"),
             )
         return None
 
@@ -355,8 +357,8 @@ class NVDClient:
         if not d:
             return None
         return CVSSMetrics(
-            version=      "2.0",
-            base_score=   float(d.get("baseScore", 0)),
+            version="2.0",
+            base_score=float(d.get("baseScore", 0)),
             vector_string=d.get("vectorString", ""),
             attack_vector=d.get("accessVector"),
             attack_complexity=d.get("accessComplexity"),
@@ -365,8 +367,8 @@ class NVDClient:
     @staticmethod
     def _extract_references(cve_data: dict[str, Any]) -> list[CVEReference]:
         refs = []
-        for r in cve_data.get("references", [])[:20]:   # cap to avoid huge payloads
-            url  = r.get("url", "")
+        for r in cve_data.get("references", [])[:20]:  # cap to avoid huge payloads
+            url = r.get("url", "")
             tags = tuple(r.get("tags", []))
             if url:
                 refs.append(CVEReference(url=url, tags=tags))

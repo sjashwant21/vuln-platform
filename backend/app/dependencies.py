@@ -17,6 +17,7 @@ Dependency tree (simplified):
   get_current_user        ← decodes JWT, returns AuthenticatedUser
     └── require_role(...)  ← RBAC guard factory
 """
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -57,6 +58,7 @@ DBSession = Annotated[AsyncSession, Depends(get_db_session)]
 
 # ── Repository factories ────────────────────────────────────────
 
+
 def get_user_repo(db: DBSession) -> UserRepository:
     return UserRepository(db)
 
@@ -75,11 +77,12 @@ def get_scan_repo(db: DBSession) -> SQLScanRepository:
 
 # ── Service factories ───────────────────────────────────────────
 
+
 def get_auth_service(
     db: DBSession,
-    user_repo: Annotated[UserRepository,      Depends(get_user_repo)],
-    org_repo:  Annotated[OrganizationRepository, Depends(get_org_repo)],
-    audit:     Annotated[AuditLogger,          Depends(get_audit_logger)],
+    user_repo: Annotated[UserRepository, Depends(get_user_repo)],
+    org_repo: Annotated[OrganizationRepository, Depends(get_org_repo)],
+    audit: Annotated[AuditLogger, Depends(get_audit_logger)],
 ) -> AuthService:
     return AuthService(
         user_repo=user_repo,
@@ -91,16 +94,16 @@ def get_auth_service(
 
 
 def get_user_service(
-    user_repo: Annotated[UserRepository,         Depends(get_user_repo)],
-    org_repo:  Annotated[OrganizationRepository, Depends(get_org_repo)],
-    audit:     Annotated[AuditLogger,            Depends(get_audit_logger)],
+    user_repo: Annotated[UserRepository, Depends(get_user_repo)],
+    org_repo: Annotated[OrganizationRepository, Depends(get_org_repo)],
+    audit: Annotated[AuditLogger, Depends(get_audit_logger)],
 ) -> UserService:
     return UserService(user_repo=user_repo, org_repo=org_repo, audit=audit)
 
 
 def get_org_service(
     org_repo: Annotated[OrganizationRepository, Depends(get_org_repo)],
-    audit:    Annotated[AuditLogger,            Depends(get_audit_logger)],
+    audit: Annotated[AuditLogger, Depends(get_audit_logger)],
 ) -> OrganizationService:
     return OrganizationService(org_repo=org_repo, audit=audit)
 
@@ -112,6 +115,7 @@ def get_scan_service(
 
 
 # ── Authentication guard ────────────────────────────────────────
+
 
 async def get_current_user(
     request: Request,
@@ -148,6 +152,7 @@ async def get_current_user(
 
 # ── RBAC role guard factory ────────────────────────────────────
 
+
 def require_role(*allowed_roles: UserRole):
     """
     Dependency factory that enforces minimum role.
@@ -160,6 +165,7 @@ def require_role(*allowed_roles: UserRole):
         ):
             ...
     """
+
     async def _guard(
         current_user: Annotated[AuthenticatedUser, Depends(get_current_user)],
     ) -> None:
@@ -182,7 +188,7 @@ def require_role(*allowed_roles: UserRole):
 
 # ── Convenience type aliases for route signatures ──────────────
 
-CurrentUser  = Annotated[AuthenticatedUser, Depends(get_current_user)]
-AuthSvc      = Annotated[AuthService,       Depends(get_auth_service)]
-UserSvc      = Annotated[UserService,       Depends(get_user_service)]
-OrgSvc       = Annotated[OrganizationService, Depends(get_org_service)]
+CurrentUser = Annotated[AuthenticatedUser, Depends(get_current_user)]
+AuthSvc = Annotated[AuthService, Depends(get_auth_service)]
+UserSvc = Annotated[UserService, Depends(get_user_service)]
+OrgSvc = Annotated[OrganizationService, Depends(get_org_service)]

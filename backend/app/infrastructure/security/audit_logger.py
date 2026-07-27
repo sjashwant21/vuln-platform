@@ -9,6 +9,7 @@ Design: fire-and-forget from the caller's perspective.
   Audit failures MUST NOT break the primary request flow.
   Exceptions are caught and logged to stderr instead of propagating.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -79,7 +80,7 @@ class AuditLogger:
 
         try:
             self._session.add(record)
-            await self._session.flush()     # Write within current transaction
+            await self._session.flush()  # Write within current transaction
             bound.info("audit_event")
         except Exception as exc:
             # Never let audit failures break the caller

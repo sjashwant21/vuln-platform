@@ -3,6 +3,7 @@ NVD (National Vulnerability Database) API client.
 Implements rate limiting, retry with exponential backoff, and response normalization.
 API docs: https://nvd.nist.gov/developers/vulnerabilities
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -128,10 +129,12 @@ class NVDClient:
     ) -> list[dict[str, Any]]:
         """Search CVEs by keyword (service name, product name, etc.)."""
         logger.info("nvd_search_cves", keyword=keyword)
-        data = await self._get({
-            "keywordSearch": keyword,
-            "resultsPerPage": min(results_per_page, 100),
-        })
+        data = await self._get(
+            {
+                "keywordSearch": keyword,
+                "resultsPerPage": min(results_per_page, 100),
+            }
+        )
 
         results = []
         for item in data.get("vulnerabilities", []):
@@ -144,10 +147,12 @@ class NVDClient:
     async def search_cves_by_cpe(self, cpe_name: str) -> list[dict[str, Any]]:
         """Search CVEs affecting a specific CPE (product)."""
         logger.info("nvd_search_by_cpe", cpe=cpe_name)
-        data = await self._get({
-            "cpeName": cpe_name,
-            "resultsPerPage": 50,
-        })
+        data = await self._get(
+            {
+                "cpeName": cpe_name,
+                "resultsPerPage": 50,
+            }
+        )
 
         results = []
         for item in data.get("vulnerabilities", []):

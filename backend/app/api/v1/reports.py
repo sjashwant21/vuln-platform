@@ -7,6 +7,7 @@ Endpoints:
   GET  /v1/reports                   List reports for org
   GET  /v1/reports/{id}/preview      HTML preview (fast, no PDF)
 """
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -31,12 +32,14 @@ async def _get_org_name(session: AsyncSession, org_id: str) -> str:
     from sqlalchemy import select
 
     from app.infrastructure.database.models import OrganizationModel
-    stmt   = select(OrganizationModel.name).where(OrganizationModel.id == org_id)
+
+    stmt = select(OrganizationModel.name).where(OrganizationModel.id == org_id)
     result = (await session.execute(stmt)).scalar_one_or_none()
     return result or "Organisation"
 
 
 # ── POST /reports/generate ─────────────────────────────────────
+
 
 @router.post(
     "/generate",
@@ -56,16 +59,16 @@ The response streams the binary file directly.
     """,
 )
 async def generate_report(
-    body:         GenerateReportRequest,
+    body: GenerateReportRequest,
     current_user: CurrentUser,
-    db:           DBSession,
+    db: DBSession,
 ) -> Response:
     from app.application.services.report_service import ReportService
 
     org_name = await _get_org_name(db, current_user.org_id)
 
     try:
-        report_type   = ReportType(body.report_type)
+        report_type = ReportType(body.report_type)
         report_format = ReportFormat(body.report_format)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
@@ -74,14 +77,14 @@ async def generate_report(
 
     try:
         content, filename = await svc.generate(
-            org_id=     current_user.org_id,
-            org_name=   org_name,
+            org_id=current_user.org_id,
+            org_name=org_name,
             report_type=report_type,
             report_format=report_format,
             generated_by=current_user.email,
             scan_job_id=body.scan_job_id,
             period_days=body.period_days,
-            ai_summary= body.ai_summary,
+            ai_summary=body.ai_summary,
             ai_recommendations=body.ai_recommendations,
             management_summary=body.management_summary,
         )
@@ -98,17 +101,17 @@ async def generate_report(
         ) from exc
 
     content_types = {
-        ReportFormat.PDF:  "application/pdf",
+        ReportFormat.PDF: "application/pdf",
         ReportFormat.DOCX: "application/vnd.openxmlformats-officedocument"
-                           ".wordprocessingml.document",
+        ".wordprocessingml.document",
     }
 
     logger.info(
         "report_served",
-        org_id=  current_user.org_id,
-        type=    body.report_type,
-        format=  body.report_format,
-        size_kb= round(len(content) / 1024, 1),
+        org_id=current_user.org_id,
+        type=body.report_type,
+        format=body.report_format,
+        size_kb=round(len(content) / 1024, 1),
         filename=filename,
     )
 
@@ -117,13 +120,14 @@ async def generate_report(
         media_type=content_types[report_format],
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-            "X-Report-Filename":   filename,
-            "X-Report-Size":       str(len(content)),
+            "X-Report-Filename": filename,
+            "X-Report-Size": str(len(content)),
         },
     )
 
 
 # ── GET /reports/preview ───────────────────────────────────────
+
 
 @router.get(
     "/preview",
@@ -132,9 +136,9 @@ async def generate_report(
 )
 async def preview_report(
     current_user: CurrentUser,
-    db:           DBSession,
-    report_type:  str = Query(default="executive"),
-    ai_summary:   str = Query(default=""),
+    db: DBSession,
+    report_type: str = Query(default="executive"),
+    ai_summary: str = Query(default=""),
 ) -> HTMLResponse:
     from app.application.services.report_service import ReportService
 
@@ -144,13 +148,13 @@ async def preview_report(
         raise HTTPException(status_code=422, detail=f"Invalid report_type: {report_type}") from None
 
     org_name = await _get_org_name(db, current_user.org_id)
-    svc      = ReportService(db)
+    svc = ReportService(db)
 
     html = await svc.generate_html_preview(
-        org_id=     current_user.org_id,
-        org_name=   org_name,
+        org_id=current_user.org_id,
+        org_name=org_name,
         report_type=rt,
         generated_by=current_user.email,
-        ai_summary= ai_summary,
+        ai_summary=ai_summary,
     )
     return HTMLResponse(content=html)

@@ -10,6 +10,7 @@ Refresh token storage:
   Only the SHA-256 hash of the raw token is persisted.
   get_by_hash() is the only lookup path — raw tokens never re-enter the DB.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -26,7 +27,6 @@ logger = structlog.get_logger(__name__)
 
 
 class UserRepository:
-
     def __init__(self, session: AsyncSession) -> None:
         self._s = session
 
@@ -78,34 +78,42 @@ class UserRepository:
             UserModel.is_active.is_(True),
         )
         total = (
-            await self._s.execute(
-                select(func.count()).select_from(UserModel).where(base)
-            )
+            await self._s.execute(select(func.count()).select_from(UserModel).where(base))
         ).scalar_one()
 
         rows = (
-            await self._s.execute(
-                select(UserModel)
-                .where(base)
-                .order_by(UserModel.created_at.asc())
-                .limit(limit)
-                .offset(offset)
+            (
+                await self._s.execute(
+                    select(UserModel)
+                    .where(base)
+                    .order_by(UserModel.created_at.asc())
+                    .limit(limit)
+                    .offset(offset)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         return list(rows), total
 
     async def email_exists(self, email: str) -> bool:
-        stmt = select(func.count()).select_from(UserModel).where(
-            UserModel.email == email.lower().strip()
+        stmt = (
+            select(func.count())
+            .select_from(UserModel)
+            .where(UserModel.email == email.lower().strip())
         )
         return (await self._s.execute(stmt)).scalar_one() > 0
 
     async def count_by_org(self, org_id: str) -> int:
-        stmt = select(func.count()).select_from(UserModel).where(
-            and_(
-                UserModel.organization_id == org_id,
-                UserModel.is_active.is_(True),
+        stmt = (
+            select(func.count())
+            .select_from(UserModel)
+            .where(
+                and_(
+                    UserModel.organization_id == org_id,
+                    UserModel.is_active.is_(True),
+                )
             )
         )
         return (await self._s.execute(stmt)).scalar_one()
@@ -160,9 +168,7 @@ class UserRepository:
 
     async def update_last_login(self, user_id: str) -> None:
         await self._s.execute(
-            update(UserModel)
-            .where(UserModel.id == user_id)
-            .values(last_login_at=datetime.now(UTC))
+            update(UserModel).where(UserModel.id == user_id).values(last_login_at=datetime.now(UTC))
         )
 
     async def update_password(self, user_id: str, org_id: str, new_hash: str) -> None:
@@ -229,8 +235,6 @@ class UserRepository:
         from sqlalchemy import delete
 
         result = await self._s.execute(
-            delete(RefreshTokenModel).where(
-                RefreshTokenModel.expires_at < datetime.now(UTC)
-            )
+            delete(RefreshTokenModel).where(RefreshTokenModel.expires_at < datetime.now(UTC))
         )
         return result.rowcount

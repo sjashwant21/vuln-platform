@@ -11,6 +11,7 @@ Endpoints:
 All routes require authentication.
 Rate limiting enforced by SlowAPI (per-user, not per-IP).
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -41,10 +42,11 @@ router = APIRouter(prefix="/intelligence", tags=["Vulnerability Intelligence"])
 
 # ── Dependency: build the correlation service per request ──────
 
+
 def _get_correlation_service(
-    db: Annotated[object, Depends(lambda: None)],   # replaced below
+    db: Annotated[object, Depends(lambda: None)],  # replaced below
 ) -> object:
-    pass   # placeholder — see actual dep below
+    pass  # placeholder — see actual dep below
 
 
 async def _build_correlation_service(
@@ -69,7 +71,7 @@ async def _build_correlation_service(
 
     redis_client = aioredis.from_url(cfg.redis_url, encoding="utf-8", decode_responses=True)
 
-    capacity     = 50.0 if cfg.nvd_api_key else 5.0
+    capacity = 50.0 if cfg.nvd_api_key else 5.0
     rate_limiter = RedisTokenBucket(
         redis=redis_client,
         key="nvd_api_global",
@@ -83,17 +85,23 @@ async def _build_correlation_service(
     factory = get_session_factory()
     session = factory()
 
-    cache   = CVECache(redis=redis_client, session=session)
+    cache = CVECache(redis=redis_client, session=session)
     matcher = VersionMatcher()
 
-    return CVECorrelationService(
-        nvd_client=nvd_client,
-        cve_cache=cache,
-        version_matcher=matcher,
-    ), session, redis_client, nvd_client
+    return (
+        CVECorrelationService(
+            nvd_client=nvd_client,
+            cve_cache=cache,
+            version_matcher=matcher,
+        ),
+        session,
+        redis_client,
+        nvd_client,
+    )
 
 
 # ── POST /intelligence/correlate ───────────────────────────────
+
 
 @router.post(
     "/correlate",
@@ -111,7 +119,7 @@ your asset context, and remediation references.
     """,
 )
 async def correlate(
-    body:         CorrelateRequest,
+    body: CorrelateRequest,
     current_user: CurrentUser,
 ) -> IntelligenceReportResponse:
     import redis.asyncio as aioredis
@@ -126,12 +134,10 @@ async def correlate(
 
     cfg = get_settings()
 
-    redis_client = aioredis.from_url(
-        cfg.redis_url, encoding="utf-8", decode_responses=True
-    )
+    redis_client = aioredis.from_url(cfg.redis_url, encoding="utf-8", decode_responses=True)
 
     try:
-        capacity     = 50.0 if cfg.nvd_api_key else 5.0
+        capacity = 50.0 if cfg.nvd_api_key else 5.0
         rate_limiter = RedisTokenBucket(
             redis=redis_client,
             key="nvd_api_global",
@@ -147,20 +153,20 @@ async def correlate(
 
         factory = get_session_factory()
         async with factory() as session:
-            cache   = CVECache(redis=redis_client, session=session)
+            cache = CVECache(redis=redis_client, session=session)
             matcher = VersionMatcher()
-            svc     = CVECorrelationService(
+            svc = CVECorrelationService(
                 nvd_client=nvd_client,
                 cve_cache=cache,
                 version_matcher=matcher,
             )
 
             report = await svc.correlate(
-                service=      body.service,
-                version=      body.version,
-                risk_context= ctx,
-                max_results=  body.max_results,
-                use_live_nvd= body.use_live_nvd,
+                service=body.service,
+                version=body.version,
+                risk_context=ctx,
+                max_results=body.max_results,
+                use_live_nvd=body.use_live_nvd,
             )
             await session.commit()
 
@@ -181,6 +187,7 @@ async def correlate(
 
 # ── POST /intelligence/correlate/batch ────────────────────────
 
+
 @router.post(
     "/correlate/batch",
     response_model=BatchReportResponse,
@@ -188,7 +195,7 @@ async def correlate(
     summary="Batch CVE correlation for multiple service/version pairs",
 )
 async def correlate_batch(
-    body:         BatchCorrelateRequest,
+    body: BatchCorrelateRequest,
     current_user: CurrentUser,
 ) -> BatchReportResponse:
     import redis.asyncio as aioredis
@@ -202,12 +209,10 @@ async def correlate_batch(
     from app.infrastructure.database.connection import get_session_factory
 
     cfg = get_settings()
-    redis_client = aioredis.from_url(
-        cfg.redis_url, encoding="utf-8", decode_responses=True
-    )
+    redis_client = aioredis.from_url(cfg.redis_url, encoding="utf-8", decode_responses=True)
 
     try:
-        capacity     = 50.0 if cfg.nvd_api_key else 5.0
+        capacity = 50.0 if cfg.nvd_api_key else 5.0
         rate_limiter = RedisTokenBucket(
             redis=redis_client,
             key="nvd_api_global",
@@ -222,18 +227,15 @@ async def correlate_batch(
 
         factory = get_session_factory()
         async with factory() as session:
-            cache   = CVECache(redis=redis_client, session=session)
+            cache = CVECache(redis=redis_client, session=session)
             matcher = VersionMatcher()
-            svc     = CVECorrelationService(
+            svc = CVECorrelationService(
                 nvd_client=nvd_client,
                 cve_cache=cache,
                 version_matcher=matcher,
             )
 
-            targets = [
-                {"service": t.service, "version": t.version}
-                for t in body.targets
-            ]
+            targets = [{"service": t.service, "version": t.version} for t in body.targets]
 
             reports = await svc.correlate_batch(targets, risk_context=ctx)
             await session.commit()
@@ -261,6 +263,7 @@ async def correlate_batch(
 
 # ── GET /intelligence/cve/{cve_id} ────────────────────────────
 
+
 @router.get(
     "/cve/{cve_id}",
     response_model=CVEDetailResponse,
@@ -268,7 +271,7 @@ async def correlate_batch(
     description="Looks up a CVE by ID from local cache first, then NVD if not cached.",
 )
 async def get_cve(
-    cve_id:       str,
+    cve_id: str,
     current_user: CurrentUser,
 ) -> CVEDetailResponse:
     import re
@@ -290,12 +293,10 @@ async def get_cve(
     cfg = get_settings()
     cve_id = cve_id.upper()
 
-    redis_client = aioredis.from_url(
-        cfg.redis_url, encoding="utf-8", decode_responses=True
-    )
+    redis_client = aioredis.from_url(cfg.redis_url, encoding="utf-8", decode_responses=True)
 
     try:
-        capacity     = 50.0 if cfg.nvd_api_key else 5.0
+        capacity = 50.0 if cfg.nvd_api_key else 5.0
         rate_limiter = RedisTokenBucket(
             redis=redis_client,
             key="nvd_api_global",
@@ -303,11 +304,11 @@ async def get_cve(
             refill_rate=capacity / 30.0,
         )
         nvd_client = NVDClient(rate_limiter=rate_limiter)
-        factory    = get_session_factory()
+        factory = get_session_factory()
 
         async with factory() as session:
-            cache  = CVECache(redis=redis_client, session=session)
-            cve    = await cache.get(cve_id)
+            cache = CVECache(redis=redis_client, session=session)
+            cve = await cache.get(cve_id)
             cached = cve is not None
 
             if cve is None:
@@ -325,37 +326,36 @@ async def get_cve(
         cvss_v3 = None
         if cve.cvss_v3:
             cvss_v3 = CVSSMetricsResponse(
-                version=              cve.cvss_v3.version,
-                base_score=           cve.cvss_v3.base_score,
-                vector_string=        cve.cvss_v3.vector_string,
-                severity=             cve.cvss_v3.severity.value,
-                attack_vector=        cve.cvss_v3.attack_vector,
-                attack_complexity=    cve.cvss_v3.attack_complexity,
-                privileges_required=  cve.cvss_v3.privileges_required,
-                user_interaction=     cve.cvss_v3.user_interaction,
+                version=cve.cvss_v3.version,
+                base_score=cve.cvss_v3.base_score,
+                vector_string=cve.cvss_v3.vector_string,
+                severity=cve.cvss_v3.severity.value,
+                attack_vector=cve.cvss_v3.attack_vector,
+                attack_complexity=cve.cvss_v3.attack_complexity,
+                privileges_required=cve.cvss_v3.privileges_required,
+                user_interaction=cve.cvss_v3.user_interaction,
                 is_network_exploitable=cve.cvss_v3.is_network_exploitable,
                 requires_no_privileges=cve.cvss_v3.requires_no_privileges,
             )
 
         refs = [
             CVEReferenceResponse(
-                url=r.url, tags=list(r.tags),
-                is_patch=r.is_patch(), is_exploit=r.is_exploit()
+                url=r.url, tags=list(r.tags), is_patch=r.is_patch(), is_exploit=r.is_exploit()
             )
             for r in cve.references
         ]
 
         cve_resp = CVEResponse(
-            cve_id=           cve.cve_id,
-            description=      cve.description,
-            severity=         cve.severity.value,
-            cvss_v3=          cvss_v3,
-            base_score=       cve.base_score,
-            cwe_ids=          list(cve.cwe_ids),
-            references=       refs,
-            published_at=     cve.published_at,
+            cve_id=cve.cve_id,
+            description=cve.description,
+            severity=cve.severity.value,
+            cvss_v3=cvss_v3,
+            base_score=cve.base_score,
+            cwe_ids=list(cve.cwe_ids),
+            references=refs,
+            published_at=cve.published_at,
             has_public_exploit=cve.has_public_exploit,
-            has_patch=        cve.has_patch,
+            has_patch=cve.has_patch,
         )
 
         return CVEDetailResponse(cve=cve_resp, cached=cached)
@@ -366,6 +366,7 @@ async def get_cve(
 
 
 # ── GET /intelligence/status ───────────────────────────────────
+
 
 @router.get(
     "/status",
@@ -386,12 +387,10 @@ async def ingestion_status(
     from app.infrastructure.database.models import CVECacheModel
 
     cfg = get_settings()
-    redis_client = aioredis.from_url(
-        cfg.redis_url, encoding="utf-8", decode_responses=True
-    )
+    redis_client = aioredis.from_url(cfg.redis_url, encoding="utf-8", decode_responses=True)
 
     try:
-        capacity     = 50.0 if cfg.nvd_api_key else 5.0
+        capacity = 50.0 if cfg.nvd_api_key else 5.0
         rate_limiter = RedisTokenBucket(
             redis=redis_client,
             key="nvd_api_global",

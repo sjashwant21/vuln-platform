@@ -6,6 +6,7 @@ Injects it into:
   1. structlog context — all log lines for this request carry request_id
   2. Response header X-Request-ID — clients can correlate errors to logs
 """
+
 from __future__ import annotations
 
 import time
@@ -21,7 +22,6 @@ logger = structlog.get_logger(__name__)
 
 
 class RequestContextMiddleware(BaseHTTPMiddleware):
-
     def __init__(self, app: ASGIApp) -> None:
         super().__init__(app)
 
@@ -41,6 +41,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         )
 
         import inspect
+
         if inspect.iscoroutinefunction(call_next):
             response: Response = await call_next(request)  # type: ignore[arg-type]
         else:

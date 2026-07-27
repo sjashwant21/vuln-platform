@@ -1,6 +1,7 @@
 """
 Unit tests for UserService.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -18,6 +19,7 @@ from app.domain.exceptions import (
 )
 
 # ── Helpers ────────────────────────────────────────────────────
+
 
 def _make_user(
     *,
@@ -46,8 +48,8 @@ def _make_service(
     users: list[MagicMock] | None = None,
 ) -> tuple[UserService, AsyncMock, AsyncMock, AsyncMock]:
     user_repo = AsyncMock()
-    org_repo  = AsyncMock()
-    audit     = AsyncMock()
+    org_repo = AsyncMock()
+    audit = AsyncMock()
 
     default_users = users or [_make_user()]
 
@@ -65,8 +67,8 @@ def _make_service(
 # get_user()
 # ══════════════════════════════════════════════════════════════════
 
-class TestGetUser:
 
+class TestGetUser:
     @pytest.mark.asyncio
     async def test_returns_dto_for_existing_user(self):
         user = _make_user()
@@ -92,8 +94,8 @@ class TestGetUser:
 # update_profile()
 # ══════════════════════════════════════════════════════════════════
 
-class TestUpdateProfile:
 
+class TestUpdateProfile:
     @pytest.mark.asyncio
     async def test_updates_full_name(self):
         user = _make_user()
@@ -135,12 +137,12 @@ class TestUpdateProfile:
 # change_role()
 # ══════════════════════════════════════════════════════════════════
 
-class TestChangeRole:
 
+class TestChangeRole:
     @pytest.mark.asyncio
     async def test_owner_can_promote_viewer_to_analyst(self):
-        owner   = _make_user(user_id="owner-1", role=UserRole.OWNER.value)
-        analyst = _make_user(user_id="user-2",  role=UserRole.VIEWER.value)
+        owner = _make_user(user_id="owner-1", role=UserRole.OWNER.value)
+        analyst = _make_user(user_id="user-2", role=UserRole.VIEWER.value)
         svc, user_repo, *_ = _make_service([owner, analyst])
         user_repo.get_by_id.return_value = analyst
         updated = _make_user(user_id="user-2", role=UserRole.ANALYST.value)
@@ -175,7 +177,7 @@ class TestChangeRole:
 
         with pytest.raises(AuthorizationError):
             await svc.change_role(
-                target_user_id="user-1",   # same as acting_user_id
+                target_user_id="user-1",  # same as acting_user_id
                 new_role=UserRole.ANALYST,
                 org_id="org-1",
                 acting_user_id="user-1",
@@ -189,25 +191,27 @@ class TestChangeRole:
         with pytest.raises(AuthorizationError) as exc_info:
             await svc.change_role(
                 target_user_id="user-2",
-                new_role=UserRole.OWNER,   # forbidden via API
+                new_role=UserRole.OWNER,  # forbidden via API
                 org_id="org-1",
                 acting_user_id="user-1",
                 acting_role=UserRole.OWNER,
             )
-        assert "OWNER" in str(exc_info.value.message).upper() or \
-               "owner" in str(exc_info.value.message).lower()
+        assert (
+            "OWNER" in str(exc_info.value.message).upper()
+            or "owner" in str(exc_info.value.message).lower()
+        )
 
 
 # ══════════════════════════════════════════════════════════════════
 # deactivate_user()
 # ══════════════════════════════════════════════════════════════════
 
-class TestDeactivateUser:
 
+class TestDeactivateUser:
     @pytest.mark.asyncio
     async def test_admin_can_deactivate_analyst(self):
-        admin   = _make_user(user_id="admin-1", role=UserRole.ADMIN.value)
-        analyst = _make_user(user_id="user-2",  role=UserRole.ANALYST.value)
+        admin = _make_user(user_id="admin-1", role=UserRole.ADMIN.value)
+        analyst = _make_user(user_id="user-2", role=UserRole.ANALYST.value)
         svc, user_repo, *_ = _make_service([admin, analyst])
         user_repo.get_by_id.return_value = analyst
 
@@ -238,7 +242,7 @@ class TestDeactivateUser:
 
         with pytest.raises(AuthorizationError):
             await svc.deactivate_user(
-                target_user_id="user-1",   # same as acting
+                target_user_id="user-1",  # same as acting
                 org_id="org-1",
                 acting_user_id="user-1",
                 acting_role=UserRole.ADMIN,

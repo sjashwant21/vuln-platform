@@ -9,6 +9,7 @@ Handles user lifecycle within an organisation:
 
 All operations are scoped to org_id — cross-tenant access is impossible.
 """
+
 from __future__ import annotations
 
 import structlog
@@ -32,6 +33,7 @@ logger = structlog.get_logger(__name__)
 
 def _to_dto(user: object) -> UserDTO:
     from app.infrastructure.database.models import UserModel
+
     u: UserModel = user  # type: ignore[assignment]
     return UserDTO(
         id=u.id,
@@ -48,7 +50,6 @@ def _to_dto(user: object) -> UserDTO:
 
 
 class UserService:
-
     def __init__(
         self,
         user_repo: UserRepository,
@@ -56,7 +57,7 @@ class UserService:
         audit: AuditLogger,
     ) -> None:
         self._users = user_repo
-        self._orgs  = org_repo
+        self._orgs = org_repo
         self._audit = audit
 
     # ── Queries ────────────────────────────────────────────────
@@ -152,9 +153,7 @@ class UserService:
             raise ResourceNotFoundError("User", target_user_id)
 
         old_role = target.role
-        updated  = await self._users.update(
-            target_user_id, org_id, {"role": new_role.value}
-        )
+        updated = await self._users.update(target_user_id, org_id, {"role": new_role.value})
 
         await self._audit.log(
             AuditAction.ROLE_CHANGED,
@@ -201,9 +200,7 @@ class UserService:
             owners_count, _ = await self._users.list_by_org(org_id)
             owner_count = sum(1 for u in owners_count if u.role == UserRole.OWNER.value)
             if owner_count <= 1:
-                raise AuthorizationError(
-                    "Cannot deactivate the last owner of an organisation"
-                )
+                raise AuthorizationError("Cannot deactivate the last owner of an organisation")
 
         await self._users.deactivate(target_user_id, org_id)
 

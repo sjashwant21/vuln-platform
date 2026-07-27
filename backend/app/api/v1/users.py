@@ -4,6 +4,7 @@ User management router — /v1/users/*
 All routes require authentication.
 Role enforcement uses the require_role() dependency factory.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, status
@@ -22,6 +23,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 # ── GET /users/me ──────────────────────────────────────────────
 
+
 @router.get(
     "/me",
     response_model=UserResponse,
@@ -29,7 +31,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 )
 async def get_my_profile(
     current_user: CurrentUser,
-    service:      UserSvc,
+    service: UserSvc,
 ) -> UserResponse:
     dto = await service.get_user(current_user.user_id, current_user.org_id)
     return UserResponse(
@@ -48,15 +50,16 @@ async def get_my_profile(
 
 # ── PATCH /users/me ────────────────────────────────────────────
 
+
 @router.patch(
     "/me",
     response_model=UserResponse,
     summary="Update current user profile",
 )
 async def update_my_profile(
-    body:         UpdateProfileRequest,
+    body: UpdateProfileRequest,
     current_user: CurrentUser,
-    service:      UserSvc,
+    service: UserSvc,
 ) -> UserResponse:
     dto = await service.update_profile(
         user_id=current_user.user_id,
@@ -79,6 +82,7 @@ async def update_my_profile(
 
 # ── GET /users ─────────────────────────────────────────────────
 
+
 @router.get(
     "",
     response_model=UserListResponse,
@@ -87,9 +91,9 @@ async def update_my_profile(
 )
 async def list_users(
     current_user: CurrentUser,
-    service:      UserSvc,
-    limit:  int = Query(default=50, ge=1, le=100),
-    offset: int = Query(default=0,  ge=0),
+    service: UserSvc,
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
 ) -> UserListResponse:
     users, total = await service.list_users(
         org_id=current_user.org_id,
@@ -120,6 +124,7 @@ async def list_users(
 
 # ── GET /users/{user_id} ───────────────────────────────────────
 
+
 @router.get(
     "/{user_id}",
     response_model=UserResponse,
@@ -127,9 +132,9 @@ async def list_users(
     dependencies=[Depends(require_role(UserRole.ADMIN, UserRole.OWNER))],
 )
 async def get_user(
-    user_id:      str,
+    user_id: str,
     current_user: CurrentUser,
-    service:      UserSvc,
+    service: UserSvc,
 ) -> UserResponse:
     dto = await service.get_user(user_id, current_user.org_id)
     return UserResponse(
@@ -148,22 +153,26 @@ async def get_user(
 
 # ── PATCH /users/{user_id}/role ────────────────────────────────
 
+
 @router.patch(
     "/{user_id}/role",
     response_model=UserResponse,
     summary="Change a user's role (owner only)",
 )
 async def change_user_role(
-    user_id:      str,
-    body:         ChangeRoleRequest,
+    user_id: str,
+    body: ChangeRoleRequest,
     current_user: CurrentUser,
-    service:      UserSvc,
+    service: UserSvc,
 ) -> UserResponse:
     try:
         new_role = UserRole(body.role)
     except ValueError:
         from app.domain.exceptions import ValidationError
-        raise ValidationError("role", f"Invalid role '{body.role}'. Valid: analyst, admin") from None
+
+        raise ValidationError(
+            "role", f"Invalid role '{body.role}'. Valid: analyst, admin"
+        ) from None
 
     dto = await service.change_role(
         target_user_id=user_id,
@@ -188,6 +197,7 @@ async def change_user_role(
 
 # ── DELETE /users/{user_id} ────────────────────────────────────
 
+
 @router.delete(
     "/{user_id}",
     status_code=status.HTTP_200_OK,
@@ -195,9 +205,9 @@ async def change_user_role(
     dependencies=[Depends(require_role(UserRole.ADMIN, UserRole.OWNER))],
 )
 async def deactivate_user(
-    user_id:      str,
+    user_id: str,
     current_user: CurrentUser,
-    service:      UserSvc,
+    service: UserSvc,
 ) -> dict:
     await service.deactivate_user(
         target_user_id=user_id,

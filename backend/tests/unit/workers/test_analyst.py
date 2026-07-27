@@ -61,9 +61,11 @@ def mock_ai_service():
 @pytest.fixture
 def patch_session_factory(db_session: AsyncSession):
     """Patch get_session_factory to return a dummy async context manager that yields the test session."""
+
     class DummyContextManager:
         async def __aenter__(self):
             return db_session
+
         async def __aexit__(self, exc_type, exc_val, exc_tb):
             pass
 
@@ -80,13 +82,18 @@ async def test_run_ai_analysis_job_not_found(patch_session_factory, mock_ai_serv
 
 
 @pytest.mark.asyncio
-async def test_run_ai_analysis_no_findings(db_session: AsyncSession, patch_session_factory, mock_ai_service):
+async def test_run_ai_analysis_no_findings(
+    db_session: AsyncSession, patch_session_factory, mock_ai_service
+):
     """Test that it exits gracefully if there are no findings."""
     from app.infrastructure.database.models import OrganizationModel, UserModel
+
     org = OrganizationModel(name="test-org", slug="test-org")
     db_session.add(org)
     await db_session.flush()
-    user = UserModel(email="test@test.com", password_hash="hash", full_name="Test User", organization_id=org.id)
+    user = UserModel(
+        email="test@test.com", password_hash="hash", full_name="Test User", organization_id=org.id
+    )
     db_session.add(user)
     await db_session.flush()
 
@@ -95,7 +102,7 @@ async def test_run_ai_analysis_no_findings(db_session: AsyncSession, patch_sessi
         initiated_by_id=user.id,
         status=ScanStatus.COMPLETED.value,
         scan_type="network",
-        target_ips=["127.0.0.1"]
+        target_ips=["127.0.0.1"],
     )
     db_session.add(job)
     await db_session.flush()
@@ -105,21 +112,25 @@ async def test_run_ai_analysis_no_findings(db_session: AsyncSession, patch_sessi
 
 
 @pytest.mark.asyncio
-async def test_run_ai_analysis_success(db_session: AsyncSession, patch_session_factory, mock_ai_service):
+async def test_run_ai_analysis_success(
+    db_session: AsyncSession, patch_session_factory, mock_ai_service
+):
     """Test that it processes findings, creates vulnerabilities, and updates the job."""
     from app.infrastructure.database.models import OrganizationModel, UserModel
+
     org = OrganizationModel(name="test-org-2", slug="test-org-2")
     db_session.add(org)
     await db_session.flush()
-    user = UserModel(email="test2@test.com", password_hash="hash", full_name="Test User 2", organization_id=org.id)
+    user = UserModel(
+        email="test2@test.com",
+        password_hash="hash",
+        full_name="Test User 2",
+        organization_id=org.id,
+    )
     db_session.add(user)
     await db_session.flush()
 
-    asset = AssetModel(
-        organization_id=org.id,
-        ip_address="127.0.0.1",
-        hostname="localhost"
-    )
+    asset = AssetModel(organization_id=org.id, ip_address="127.0.0.1", hostname="localhost")
     db_session.add(asset)
     await db_session.flush()
 
@@ -128,16 +139,15 @@ async def test_run_ai_analysis_success(db_session: AsyncSession, patch_session_f
         initiated_by_id=user.id,
         status=ScanStatus.COMPLETED.value,
         scan_type="network",
-        target_ips=["127.0.0.1"]
+        target_ips=["127.0.0.1"],
     )
     db_session.add(job)
     await db_session.flush()
 
     from app.infrastructure.database.models import CVECacheModel
+
     cve = CVECacheModel(
-        cve_id="CVE-2024-1234",
-        description="A vulnerability for testing",
-        severity="medium"
+        cve_id="CVE-2024-1234", description="A vulnerability for testing", severity="medium"
     )
     db_session.add(cve)
     await db_session.flush()
@@ -151,7 +161,7 @@ async def test_run_ai_analysis_success(db_session: AsyncSession, patch_session_f
         title="Test finding",
         description="test",
         cve_ids=["CVE-2024-1234"],
-        raw_output={"service": "http", "version": "1.0"}
+        raw_output={"service": "http", "version": "1.0"},
     )
     db_session.add(finding)
     await db_session.flush()
@@ -164,6 +174,7 @@ async def test_run_ai_analysis_success(db_session: AsyncSession, patch_session_f
 
     # 2. Verify vulnerabilities were created
     from app.infrastructure.database.models import RemediationPlanModel, VulnerabilityModel
+
     vuln_count = (await db_session.execute(select(VulnerabilityModel))).scalars().all()
     assert len(vuln_count) == 1
     assert vuln_count[0].title == "Test Vuln"

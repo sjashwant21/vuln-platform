@@ -46,6 +46,7 @@ celery_app.conf.task_always_eager = False
 @pytest_asyncio.fixture(scope="session")
 async def db_engine():
     from app.infrastructure.database.models import Base
+
     cfg = get_settings()
 
     engine = create_async_engine(

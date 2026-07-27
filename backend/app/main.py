@@ -8,6 +8,7 @@ Responsibilities:
   4. Router registration — versioned API prefix
   5. OpenAPI metadata — title, version, security scheme
 """
+
 from __future__ import annotations
 
 import logging
@@ -45,6 +46,7 @@ logger = structlog.get_logger(__name__)
 
 # ── Logging setup ──────────────────────────────────────────────
 
+
 def _configure_logging(log_level: str) -> None:
     structlog.configure(
         processors=[
@@ -72,6 +74,7 @@ def _configure_logging(log_level: str) -> None:
 
 # ── Lifespan ───────────────────────────────────────────────────
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
@@ -89,17 +92,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         import os
         import subprocess
         import sys
+
         alembic_cfg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "alembic.ini")
         logger.info("running_migrations", config=alembic_cfg_path)
         result = subprocess.run(
             [sys.executable, "-m", "alembic", "-c", alembic_cfg_path, "upgrade", "head"],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True,
+            text=True,
+            timeout=60,
             env={**os.environ, "DATABASE_URL": cfg.database_url},
         )
         if result.returncode == 0:
             logger.info("migrations_complete", stdout=result.stdout[-500:] if result.stdout else "")
         else:
-            logger.warning("migrations_failed", stderr=result.stderr[-500:] if result.stderr else "")
+            logger.warning(
+                "migrations_failed", stderr=result.stderr[-500:] if result.stderr else ""
+            )
     except Exception as exc:
         logger.warning("migrations_error", error=str(exc))
 
@@ -111,6 +119,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 # ── Application factory ────────────────────────────────────────
 
+
 def create_app() -> FastAPI:
     cfg = get_settings()
 
@@ -118,8 +127,7 @@ def create_app() -> FastAPI:
         title="VulnAssess Platform API",
         version=cfg.app_version,
         description=(
-            "AI-Powered Vulnerability Assessment Platform. "
-            "Multi-tenant, async, production-grade."
+            "AI-Powered Vulnerability Assessment Platform. Multi-tenant, async, production-grade."
         ),
         docs_url=None if cfg.is_production else "/docs",
         redoc_url=None if cfg.is_production else "/redoc",
@@ -128,6 +136,7 @@ def create_app() -> FastAPI:
     )
 
     from slowapi import _rate_limit_exceeded_handler
+
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     app.add_middleware(SlowAPIMiddleware)
@@ -148,19 +157,18 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def security_headers(request: Request, call_next: object) -> JSONResponse:
         import inspect
+
         if inspect.iscoroutinefunction(call_next):
             response = await call_next(request)  # type: ignore[arg-type]
         else:
             response = await call_next(request)  # type: ignore[arg-type, misc]
-        response.headers["X-Content-Type-Options"]    = "nosniff"
-        response.headers["X-Frame-Options"]           = "DENY"
-        response.headers["X-XSS-Protection"]          = "1; mode=block"
-        response.headers["Referrer-Policy"]           = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"]        = "geolocation=(), microphone=()"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=()"
         if cfg.is_production:
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains"
-            )
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response  # type: ignore[return-value]
 
     # ── Exception handlers ─────────────────────────────────────
@@ -227,14 +235,14 @@ def create_app() -> FastAPI:
 
     API_PREFIX = "/v1"
 
-    app.include_router(health.router)                                    # /health
-    app.include_router(auth.router,          prefix=API_PREFIX)          # /v1/auth/*
-    app.include_router(users.router,         prefix=API_PREFIX)          # /v1/users/*
-    app.include_router(organizations.router, prefix=API_PREFIX)          # /v1/organizations/*
-    app.include_router(analysis.router,      prefix=API_PREFIX)          # /v1/analysis/*
-    app.include_router(intelligence.router,  prefix=API_PREFIX)          # /v1/intelligence/*
-    app.include_router(reports.router,       prefix=API_PREFIX)          # /v1/reports/*
-    app.include_router(scans.router,         prefix=API_PREFIX)          # /v1/scans/*
+    app.include_router(health.router)  # /health
+    app.include_router(auth.router, prefix=API_PREFIX)  # /v1/auth/*
+    app.include_router(users.router, prefix=API_PREFIX)  # /v1/users/*
+    app.include_router(organizations.router, prefix=API_PREFIX)  # /v1/organizations/*
+    app.include_router(analysis.router, prefix=API_PREFIX)  # /v1/analysis/*
+    app.include_router(intelligence.router, prefix=API_PREFIX)  # /v1/intelligence/*
+    app.include_router(reports.router, prefix=API_PREFIX)  # /v1/reports/*
+    app.include_router(scans.router, prefix=API_PREFIX)  # /v1/scans/*
 
     logger.info("application_ready", prefix=API_PREFIX)
     return app

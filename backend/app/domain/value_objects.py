@@ -3,6 +3,7 @@ Domain Value Objects.
 Immutable, self-validating objects representing domain concepts.
 No infrastructure dependencies.
 """
+
 from __future__ import annotations
 
 import ipaddress
@@ -139,9 +140,7 @@ class CVSSScore:
 class CVEIdentifier:
     """Validated CVE ID value object."""
 
-    PATTERN: ClassVar[re.Pattern[str]] = re.compile(
-        r"^CVE-\d{4}-\d{4,}$", re.IGNORECASE
-    )
+    PATTERN: ClassVar[re.Pattern[str]] = re.compile(r"^CVE-\d{4}-\d{4,}$", re.IGNORECASE)
 
     value: str
 
@@ -223,12 +222,7 @@ class SecurityHealthScore:
         if total_assets <= 0:
             total_assets = 1
 
-        deduction = (
-            (critical * 20)
-            + (high * 8)
-            + (medium * 2)
-            + (low * 0.5)
-        )
+        deduction = (critical * 20) + (high * 8) + (medium * 2) + (low * 0.5)
         normalized_deduction = deduction / total_assets
         raw_score = max(0, 100 - normalized_deduction)
         score = max(0, min(100, int(raw_score)))

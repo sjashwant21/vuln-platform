@@ -8,6 +8,7 @@ Safety settings are set to BLOCK_NONE for security content —
 default Gemini safety filters block legitimate security analysis
 content like CVE descriptions and exploit discussion.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -27,10 +28,10 @@ logger = structlog.get_logger(__name__)
 
 # Disable safety filters for security content — these block legitimate analysis
 _SAFETY_SETTINGS = [
-    {"category": "HARM_CATEGORY_HARASSMENT",        "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_HATE_SPEECH",        "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",  "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT",  "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
 ]
 
 
@@ -47,7 +48,7 @@ class GeminiProvider:
         genai.configure(api_key=self._config.api_key)
 
         gen_config_kwargs: dict = {
-            "temperature":     self._config.temperature,
+            "temperature": self._config.temperature,
             "max_output_tokens": self._config.max_tokens,
         }
         if json_mode:
@@ -57,23 +58,22 @@ class GeminiProvider:
             model_name=self._config.model,
             generation_config=genai.types.GenerationConfig(**gen_config_kwargs),
             safety_settings=_SAFETY_SETTINGS,
-            system_instruction=None,   # injected per-call
+            system_instruction=None,  # injected per-call
         )
 
     async def complete(
         self,
         system_prompt: str,
-        user_prompt:   str,
+        user_prompt: str,
         *,
-        temperature:   float | None = None,
-        max_tokens:    int   | None = None,
-        json_mode:     bool         = False,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        json_mode: bool = False,
     ) -> LLMResponse:
         # Gemini doesn't have a separate system prompt field in all SDK versions;
         # prepend it to the user message with a clear separator.
         full_prompt = (
-            f"<system_instructions>\n{system_prompt}\n</system_instructions>\n\n"
-            f"{user_prompt}"
+            f"<system_instructions>\n{system_prompt}\n</system_instructions>\n\n{user_prompt}"
         )
 
         logger.debug("gemini_request", model=self._config.model, json_mode=json_mode)
@@ -99,27 +99,26 @@ class GeminiProvider:
             raise LLMProviderError("gemini", str(exc)) from exc
 
         content = response.text if hasattr(response, "text") else ""
-        usage   = getattr(response, "usage_metadata", None)
+        usage = getattr(response, "usage_metadata", None)
 
         return LLMResponse(
-            content=           content,
-            prompt_tokens=     getattr(usage, "prompt_token_count",     0) if usage else 0,
-            completion_tokens= getattr(usage, "candidates_token_count", 0) if usage else 0,
-            model=             self._config.model,
-            finish_reason=     "stop",
+            content=content,
+            prompt_tokens=getattr(usage, "prompt_token_count", 0) if usage else 0,
+            completion_tokens=getattr(usage, "candidates_token_count", 0) if usage else 0,
+            model=self._config.model,
+            finish_reason="stop",
         )
 
     async def stream(
         self,
         system_prompt: str,
-        user_prompt:   str,
+        user_prompt: str,
         *,
         temperature: float | None = None,
-        max_tokens:  int   | None = None,
+        max_tokens: int | None = None,
     ) -> AsyncGenerator[str, None]:
         full_prompt = (
-            f"<system_instructions>\n{system_prompt}\n</system_instructions>\n\n"
-            f"{user_prompt}"
+            f"<system_instructions>\n{system_prompt}\n</system_instructions>\n\n{user_prompt}"
         )
 
         try:

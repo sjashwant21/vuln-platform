@@ -2,6 +2,7 @@
 Anthropic Claude AI provider for vulnerability remediation recommendations.
 Implements structured prompting for consistent, actionable security advice.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -118,6 +119,7 @@ class ClaudeAIProvider:
 
         # Parse structured JSON response
         import json
+
         try:
             structured = json.loads(raw_content)
         except json.JSONDecodeError:
@@ -157,10 +159,10 @@ class ClaudeAIProvider:
 Security Health Score: {health_score}/100
 Total Assets Assessed: {total_assets}
 Vulnerability Breakdown:
-- Critical: {vuln_counts.get('critical', 0)}
-- High: {vuln_counts.get('high', 0)}
-- Medium: {vuln_counts.get('medium', 0)}
-- Low: {vuln_counts.get('low', 0)}
+- Critical: {vuln_counts.get("critical", 0)}
+- High: {vuln_counts.get("high", 0)}
+- Medium: {vuln_counts.get("medium", 0)}
+- Low: {vuln_counts.get("low", 0)}
 
 Top 5 Vulnerabilities:
 {self._format_top_vulns(top_vulnerabilities)}
@@ -187,8 +189,7 @@ Be direct, avoid jargon, use business language."""
         except Exception as e:
             logger.error("claude_executive_summary_failed", error=str(e))
             return (
-                "Executive summary generation failed. "
-                "Please review the technical findings below."
+                "Executive summary generation failed. Please review the technical findings below."
             )
 
     def _build_prompt(
@@ -219,9 +220,8 @@ Be direct, avoid jargon, use business language."""
         if hostname:
             context_parts.append(f"**Hostname**: {hostname}")
 
-        return (
-            "Provide remediation guidance for the following vulnerability:\n\n"
-            + "\n".join(context_parts)
+        return "Provide remediation guidance for the following vulnerability:\n\n" + "\n".join(
+            context_parts
         )
 
     @staticmethod

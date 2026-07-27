@@ -7,6 +7,7 @@ Security notes:
   - needs_rehash() enables silent upgrades on login when rounds change
   - All comparisons are constant-time (passlib guarantees this)
 """
+
 from __future__ import annotations
 
 from passlib.context import CryptContext

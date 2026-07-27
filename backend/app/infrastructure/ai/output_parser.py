@@ -22,6 +22,7 @@ Failed validation raises LLMOutputParseError with the raw output
 attached so callers can log it, retry with a different prompt, or
 fall back to a degraded response.
 """
+
 from __future__ import annotations
 
 import json
@@ -51,8 +52,8 @@ from app.infrastructure.ai.provider_protocol import LLMOutputParseError
 logger = structlog.get_logger(__name__)
 
 # Match JSON object or array at top level, ignoring surrounding text
-_JSON_OBJECT_RE = re.compile(r'\{.*\}', re.DOTALL)
-_JSON_FENCE_RE  = re.compile(r'```(?:json)?\s*(.*?)\s*```', re.DOTALL | re.IGNORECASE)
+_JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
+_JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL | re.IGNORECASE)
 
 
 class OutputParser:
@@ -63,8 +64,8 @@ class OutputParser:
 
     def parse(
         self,
-        stage:   AnalysisStage,
-        raw:     str,
+        stage: AnalysisStage,
+        raw: str,
         request: AnalysisRequest,
     ) -> Any:
         """
@@ -85,11 +86,11 @@ class OutputParser:
         valid_cve_ids = {v.cve_id for v in request.vulnerabilities}
 
         parsers = {
-            AnalysisStage.TRIAGE:        self._parse_executive_summary,
-            AnalysisStage.TECHNICAL:     self._parse_technical_analysis,
+            AnalysisStage.TRIAGE: self._parse_executive_summary,
+            AnalysisStage.TECHNICAL: self._parse_technical_analysis,
             AnalysisStage.RISK_PRIORITY: self._parse_risk_prioritization,
-            AnalysisStage.REMEDIATION:   self._parse_remediation,
-            AnalysisStage.EXECUTIVE:     self._parse_management_summary,
+            AnalysisStage.REMEDIATION: self._parse_remediation,
+            AnalysisStage.EXECUTIVE: self._parse_management_summary,
         }
 
         parser = parsers.get(stage)
@@ -99,9 +100,7 @@ class OutputParser:
         try:
             return parser(data, valid_cve_ids)
         except (KeyError, TypeError, ValueError) as exc:
-            raise LLMOutputParseError(
-                stage.value, raw, f"Schema validation failed: {exc}"
-            ) from exc
+            raise LLMOutputParseError(stage.value, raw, f"Schema validation failed: {exc}") from exc
 
     # ── Gate 1: JSON extraction ────────────────────────────────
 
@@ -141,12 +140,12 @@ class OutputParser:
     def _fix_common_json_issues(text: str) -> str:
         """Fix the most common LLM JSON generation mistakes."""
         # Remove trailing commas before } or ]
-        text = re.sub(r',\s*([}\]])', r'\1', text)
+        text = re.sub(r",\s*([}\]])", r"\1", text)
         # Replace single quotes with double quotes (outside already-quoted strings)
         # This is heuristic and not perfect but catches most cases
         text = re.sub(r"(?<!\\)'", '"', text)
         # Remove comments (some models add // comments)
-        text = re.sub(r'//[^\n]*', '', text)
+        text = re.sub(r"//[^\n]*", "", text)
         return text
 
     # ── Gate 2+3: Stage parsers ────────────────────────────────
@@ -155,12 +154,12 @@ class OutputParser:
         self, data: dict[str, Any], valid_cves: set[str]
     ) -> ExecutiveSummary:
         return ExecutiveSummary(
-            overall_risk_level= RiskLevel(self._str(data, "overall_risk_level", "high")),
-            headline=           self._str(data, "headline", "Security assessment complete"),
-            business_impact=    self._str(data, "business_impact", ""),
-            key_findings=       tuple(self._list_of_str(data, "key_findings")),
-            immediate_actions=  tuple(self._list_of_str(data, "immediate_actions")),
-            confidence=         self._float_bounded(data, "confidence", 0.8, 0.0, 1.0),
+            overall_risk_level=RiskLevel(self._str(data, "overall_risk_level", "high")),
+            headline=self._str(data, "headline", "Security assessment complete"),
+            business_impact=self._str(data, "business_impact", ""),
+            key_findings=tuple(self._list_of_str(data, "key_findings")),
+            immediate_actions=tuple(self._list_of_str(data, "immediate_actions")),
+            confidence=self._float_bounded(data, "confidence", 0.8, 0.0, 1.0),
         )
 
     def _parse_technical_analysis(
@@ -174,40 +173,44 @@ class OutputParser:
             # Gate 3: CVE integrity
             if cve_id and cve_id not in valid_cves:
                 logger.warning("invalid_cve_in_output", cve_id=cve_id)
-                cve_id = None   # Sanitise rather than reject entirely
+                cve_id = None  # Sanitise rather than reject entirely
 
-            findings.append(TechnicalFinding(
-                cve_id=          cve_id,
-                title=           self._str(f, "title", "Untitled finding"),
-                affected_service=self._str(f, "affected_service", "Unknown"),
-                affected_port=   self._int_or_none(f, "affected_port"),
-                technical_detail=self._str(f, "technical_detail", ""),
-                attack_scenario= self._str(f, "attack_scenario", ""),
-                exploitation_complexity=self._str(f, "exploitation_complexity", "moderate"),
-                blast_radius=    self._str(f, "blast_radius", "Unknown"),
-                confidence=      self._float_bounded(f, "confidence", 0.7, 0.0, 1.0),
-            ))
+            findings.append(
+                TechnicalFinding(
+                    cve_id=cve_id,
+                    title=self._str(f, "title", "Untitled finding"),
+                    affected_service=self._str(f, "affected_service", "Unknown"),
+                    affected_port=self._int_or_none(f, "affected_port"),
+                    technical_detail=self._str(f, "technical_detail", ""),
+                    attack_scenario=self._str(f, "attack_scenario", ""),
+                    exploitation_complexity=self._str(f, "exploitation_complexity", "moderate"),
+                    blast_radius=self._str(f, "blast_radius", "Unknown"),
+                    confidence=self._float_bounded(f, "confidence", 0.7, 0.0, 1.0),
+                )
+            )
 
         indicators = []
         for ind in data.get("threat_indicators", []):
             if not isinstance(ind, dict):
                 continue
-            raw_refs   = ind.get("cve_refs", [])
+            raw_refs = ind.get("cve_refs", [])
             clean_refs = tuple(r for r in raw_refs if isinstance(r, str) and r in valid_cves)
-            indicators.append(ThreatIndicator(
-                indicator=   self._str(ind, "indicator", ""),
-                threat_type= self._str(ind, "threat_type", "Unknown"),
-                cve_refs=    clean_refs,
-                confidence=  self._float_bounded(ind, "confidence", 0.7, 0.0, 1.0),
-            ))
+            indicators.append(
+                ThreatIndicator(
+                    indicator=self._str(ind, "indicator", ""),
+                    threat_type=self._str(ind, "threat_type", "Unknown"),
+                    cve_refs=clean_refs,
+                    confidence=self._float_bounded(ind, "confidence", 0.7, 0.0, 1.0),
+                )
+            )
 
         return TechnicalAnalysis(
-            attack_surface_summary= self._str(data, "attack_surface_summary", ""),
-            most_critical_path=     self._str(data, "most_critical_path", ""),
-            findings=               tuple(findings),
-            threat_indicators=      tuple(indicators),
-            lateral_movement_risk=  self._str(data, "lateral_movement_risk", ""),
-            data_exfiltration_risk= self._str(data, "data_exfiltration_risk", ""),
+            attack_surface_summary=self._str(data, "attack_surface_summary", ""),
+            most_critical_path=self._str(data, "most_critical_path", ""),
+            findings=tuple(findings),
+            threat_indicators=tuple(indicators),
+            lateral_movement_risk=self._str(data, "lateral_movement_risk", ""),
+            data_exfiltration_risk=self._str(data, "data_exfiltration_risk", ""),
         )
 
     def _parse_risk_prioritization(
@@ -228,22 +231,24 @@ class OutputParser:
             except ValueError:
                 risk_level = RiskLevel.MEDIUM
 
-            prioritized.append(PrioritizedVuln(
-                cve_id=           cve_id,
-                title=            self._str(item, "title", cve_id),
-                risk_level=       risk_level,
-                priority_score=   self._float_bounded(item, "priority_score", 50.0, 0.0, 100.0),
-                cvss_score=       item.get("cvss_score"),
-                business_context= self._str(item, "business_context", ""),
-                exploitability=   self._str(item, "exploitability", "theoretical"),
-                time_to_exploit=  self._str(item, "time_to_exploit", "Unknown"),
-                affected_service= self._str(item, "affected_service", "Unknown"),
-                priority_rationale=self._str(item, "priority_rationale", ""),
-            ))
+            prioritized.append(
+                PrioritizedVuln(
+                    cve_id=cve_id,
+                    title=self._str(item, "title", cve_id),
+                    risk_level=risk_level,
+                    priority_score=self._float_bounded(item, "priority_score", 50.0, 0.0, 100.0),
+                    cvss_score=item.get("cvss_score"),
+                    business_context=self._str(item, "business_context", ""),
+                    exploitability=self._str(item, "exploitability", "theoretical"),
+                    time_to_exploit=self._str(item, "time_to_exploit", "Unknown"),
+                    affected_service=self._str(item, "affected_service", "Unknown"),
+                    priority_rationale=self._str(item, "priority_rationale", ""),
+                )
+            )
 
         return RiskPrioritization(
-            prioritized_vulns=   tuple(prioritized),
-            top_3_rationale=     self._str(data, "top_3_rationale", ""),
+            prioritized_vulns=tuple(prioritized),
+            top_3_rationale=self._str(data, "top_3_rationale", ""),
             risk_acceptance_note=self._str(data, "risk_acceptance_note", ""),
         )
 
@@ -262,16 +267,18 @@ class OutputParser:
             for i, step in enumerate(raw.get("steps", []), 1):
                 if not isinstance(step, dict):
                     continue
-                steps.append(RemediationStep(
-                    step_number=     int(step.get("step_number", i)),
-                    title=           self._str(step, "title", f"Step {i}"),
-                    description=     self._str(step, "description", ""),
-                    commands=        tuple(c for c in step.get("commands", []) if isinstance(c, str)),
-                    verification=    self._str(step, "verification", ""),
-                    estimated_time=  self._str(step, "estimated_time", "Unknown"),
-                    requires_restart=bool(step.get("requires_restart", False)),
-                    requires_downtime=bool(step.get("requires_downtime", False)),
-                ))
+                steps.append(
+                    RemediationStep(
+                        step_number=int(step.get("step_number", i)),
+                        title=self._str(step, "title", f"Step {i}"),
+                        description=self._str(step, "description", ""),
+                        commands=tuple(c for c in step.get("commands", []) if isinstance(c, str)),
+                        verification=self._str(step, "verification", ""),
+                        estimated_time=self._str(step, "estimated_time", "Unknown"),
+                        requires_restart=bool(step.get("requires_restart", False)),
+                        requires_downtime=bool(step.get("requires_downtime", False)),
+                    )
+                )
 
             try:
                 effort = RemediationEffort(raw.get("effort", "short_term"))
@@ -279,41 +286,43 @@ class OutputParser:
                 effort = RemediationEffort.SHORT_TERM
 
             return RemediationPlan(
-                cve_id=       cve_id,
-                title=        self._str(raw, "title", cve_id),
-                effort=       effort,
-                priority=     priority,
-                steps=        tuple(steps),
+                cve_id=cve_id,
+                title=self._str(raw, "title", cve_id),
+                effort=effort,
+                priority=priority,
+                steps=tuple(steps),
                 prerequisites=tuple(p for p in raw.get("prerequisites", []) if isinstance(p, str)),
                 rollback_plan=self._str(raw, "rollback_plan", "Restore from backup if needed"),
-                references=   tuple(r for r in raw.get("references", []) if isinstance(r, str)),
-                confidence=   self._float_bounded(raw, "confidence", 0.8, 0.0, 1.0),
+                references=tuple(r for r in raw.get("references", []) if isinstance(r, str)),
+                confidence=self._float_bounded(raw, "confidence", 0.8, 0.0, 1.0),
             )
 
-        immediate   = []
-        short_term  = []
-        long_term   = []
+        immediate = []
+        short_term = []
+        long_term = []
 
-        for i, raw in enumerate(data.get("immediate_actions", []),   1):
+        for i, raw in enumerate(data.get("immediate_actions", []), 1):
             plan = _parse_plan(raw, i)
             if plan:
                 immediate.append(plan)
 
-        for i, raw in enumerate(data.get("short_term_actions", []),  len(immediate) + 1):
+        for i, raw in enumerate(data.get("short_term_actions", []), len(immediate) + 1):
             plan = _parse_plan(raw, i)
             if plan:
                 short_term.append(plan)
 
-        for i, raw in enumerate(data.get("long_term_actions", []),   len(immediate) + len(short_term) + 1):
+        for i, raw in enumerate(
+            data.get("long_term_actions", []), len(immediate) + len(short_term) + 1
+        ):
             plan = _parse_plan(raw, i)
             if plan:
                 long_term.append(plan)
 
         return RemediationRecommendations(
-            immediate_actions=  tuple(immediate),
-            short_term_actions= tuple(short_term),
-            long_term_actions=  tuple(long_term),
-            quick_wins=         tuple(self._list_of_str(data, "quick_wins")),
+            immediate_actions=tuple(immediate),
+            short_term_actions=tuple(short_term),
+            long_term_actions=tuple(long_term),
+            quick_wins=tuple(self._list_of_str(data, "quick_wins")),
             estimated_total_effort=self._str(data, "estimated_total_effort", "Unknown"),
         )
 
@@ -333,14 +342,14 @@ class OutputParser:
             label = "Poor"
 
         return ManagementSummary(
-            risk_headline=         self._str(data, "risk_headline", "Security assessment complete"),
-            security_score=        score,
-            score_label=           data.get("score_label") or label,
-            top_risks=             tuple(self._list_of_str(data, "top_risks")),
-            business_risks=        tuple(self._list_of_str(data, "business_risks")),
-            investment_needed=     self._str(data, "investment_needed", "Unknown"),
+            risk_headline=self._str(data, "risk_headline", "Security assessment complete"),
+            security_score=score,
+            score_label=data.get("score_label") or label,
+            top_risks=tuple(self._list_of_str(data, "top_risks")),
+            business_risks=tuple(self._list_of_str(data, "business_risks")),
+            investment_needed=self._str(data, "investment_needed", "Unknown"),
             what_happens_if_ignored=self._str(data, "what_happens_if_ignored", ""),
-            what_we_recommend=     self._str(data, "what_we_recommend", ""),
+            what_we_recommend=self._str(data, "what_we_recommend", ""),
         )
 
     # ── Type helpers ───────────────────────────────────────────

@@ -1,6 +1,7 @@
 """
 Scan job and findings repository.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -50,11 +51,7 @@ class SQLScanRepository(ScanRepository):
         if user_id:
             conditions.append(ScanJobModel.initiated_by_id == user_id)
 
-        count_stmt = (
-            select(func.count())
-            .select_from(ScanJobModel)
-            .where(and_(*conditions))
-        )
+        count_stmt = select(func.count()).select_from(ScanJobModel).where(and_(*conditions))
         total = (await self._session.execute(count_stmt)).scalar_one()
 
         data_stmt = (
@@ -84,17 +81,18 @@ class SQLScanRepository(ScanRepository):
 
         if status == ScanStatus.RUNNING:
             update_values["started_at"] = datetime.now(UTC)
-        elif status in (ScanStatus.COMPLETED, ScanStatus.FAILED, ScanStatus.CANCELLED, ScanStatus.TIMEOUT):
+        elif status in (
+            ScanStatus.COMPLETED,
+            ScanStatus.FAILED,
+            ScanStatus.CANCELLED,
+            ScanStatus.TIMEOUT,
+        ):
             update_values["completed_at"] = datetime.now(UTC)
 
         if extra_data:
             update_values.update(extra_data)
 
-        stmt = (
-            update(ScanJobModel)
-            .where(ScanJobModel.id == job_id)
-            .values(**update_values)
-        )
+        stmt = update(ScanJobModel).where(ScanJobModel.id == job_id).values(**update_values)
         await self._session.execute(stmt)
 
     async def count_running_jobs(self, org_id: str) -> int:
@@ -116,9 +114,7 @@ class SQLScanRepository(ScanRepository):
         await self._session.flush()
         return finding
 
-    async def list_findings_by_job(
-        self, job_id: str, org_id: str
-    ) -> list[ScanFindingModel]:
+    async def list_findings_by_job(self, job_id: str, org_id: str) -> list[ScanFindingModel]:
         # Verify org ownership via join
         stmt = (
             select(ScanFindingModel)

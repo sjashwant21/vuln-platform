@@ -8,6 +8,7 @@ Architecture decisions:
   - pool_pre_ping=True — detects stale connections before use (essential in containers)
   - pool_recycle=3600 — avoids hitting PostgreSQL's idle connection timeout
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
@@ -45,6 +46,7 @@ def create_engine_and_factory(settings: Settings | None = None) -> None:
     ssl_required = "sslmode=require" in db_url or "sslmode=verify-full" in db_url
     if "sslmode=" in db_url:
         import re
+
         db_url = re.sub(r"[?&]sslmode=[^&]*", "", db_url).rstrip("?&")
 
     # Set SSL connect_args for asyncpg (needs ssl=True, not a string)
@@ -59,14 +61,14 @@ def create_engine_and_factory(settings: Settings | None = None) -> None:
         pool_timeout=cfg.database_pool_timeout,
         pool_pre_ping=True,
         pool_recycle=3600,
-        echo=cfg.is_development,   # SQL logging in dev only — never in prod
+        echo=cfg.is_development,  # SQL logging in dev only — never in prod
         connect_args=connect_args,
     )
 
     _session_factory = async_sessionmaker(
         bind=_engine,
         class_=AsyncSession,
-        expire_on_commit=False,   # Avoids lazy-load errors after commit
+        expire_on_commit=False,  # Avoids lazy-load errors after commit
         autocommit=False,
         autoflush=False,
     )

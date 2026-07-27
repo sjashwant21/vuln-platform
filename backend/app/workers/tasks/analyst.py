@@ -72,9 +72,7 @@ async def _run_ai_analysis_async(job_id: str) -> None:
         # Analyze each asset
         for asset_id, findings in findings_by_asset.items():
             asset = (
-                await session.execute(
-                    select(AssetModel).where(AssetModel.id == asset_id)
-                )
+                await session.execute(select(AssetModel).where(AssetModel.id == asset_id))
             ).scalar_one_or_none()
             if not asset:
                 continue
@@ -110,19 +108,29 @@ async def _run_ai_analysis_async(job_id: str) -> None:
             try:
                 analysis = await ai_svc.analyse(request)
             except Exception as e:
-                logger.exception("ai_analysis_failed", job_id=job_id, asset_id=asset_id, error=str(e))
+                logger.exception(
+                    "ai_analysis_failed", job_id=job_id, asset_id=asset_id, error=str(e)
+                )
                 continue
 
             # Map TechnicalFindings to VulnerabilityModel
             for finding in analysis.technical_analysis.findings:
                 plan_resp = next(
-                    (p for p in analysis.remediation_recommendations.short_term_actions if p.cve_id == finding.cve_id),
-                    None
+                    (
+                        p
+                        for p in analysis.remediation_recommendations.short_term_actions
+                        if p.cve_id == finding.cve_id
+                    ),
+                    None,
                 )
                 if not plan_resp:
                     plan_resp = next(
-                        (p for p in analysis.remediation_recommendations.long_term_actions if p.cve_id == finding.cve_id),
-                        None
+                        (
+                            p
+                            for p in analysis.remediation_recommendations.long_term_actions
+                            if p.cve_id == finding.cve_id
+                        ),
+                        None,
                     )
 
                 vuln_data = {
@@ -138,8 +146,12 @@ async def _run_ai_analysis_async(job_id: str) -> None:
                 }
 
                 priority_vuln = next(
-                    (v for v in analysis.risk_prioritization.prioritized_vulnerabilities if v.cve_id == finding.cve_id),
-                    None
+                    (
+                        v
+                        for v in analysis.risk_prioritization.prioritized_vulnerabilities
+                        if v.cve_id == finding.cve_id
+                    ),
+                    None,
                 )
                 if priority_vuln:
                     vuln_data["severity"] = priority_vuln.risk_level.value

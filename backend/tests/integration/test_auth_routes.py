@@ -5,6 +5,7 @@ These use the real FastAPI app with a real (test) PostgreSQL database.
 Every test runs inside a transaction that is rolled back after the test,
 so tests are isolated and leave no state.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -27,8 +28,8 @@ REGISTER_PAYLOAD: dict[str, Any] = {
 # POST /v1/auth/register
 # ══════════════════════════════════════════════════════════════════
 
-class TestRegister:
 
+class TestRegister:
     @pytest.mark.asyncio
     async def test_successful_registration(self, client: AsyncClient):
         resp = await client.post("/v1/auth/register", json=REGISTER_PAYLOAD)
@@ -105,8 +106,8 @@ class TestRegister:
 # POST /v1/auth/login
 # ══════════════════════════════════════════════════════════════════
 
-class TestLogin:
 
+class TestLogin:
     @pytest.mark.asyncio
     async def test_valid_credentials_return_tokens(
         self, client: AsyncClient, registered_user: dict
@@ -121,9 +122,7 @@ class TestLogin:
         assert body["expires_in"] == 900
 
     @pytest.mark.asyncio
-    async def test_wrong_password_returns_401(
-        self, client: AsyncClient, registered_user: dict
-    ):
+    async def test_wrong_password_returns_401(self, client: AsyncClient, registered_user: dict):
         resp = await client.post(
             "/v1/auth/login",
             json={"email": "owner@acme.example", "password": "WrongPass1"},
@@ -152,14 +151,14 @@ class TestLogin:
 # POST /v1/auth/refresh
 # ══════════════════════════════════════════════════════════════════
 
-class TestRefresh:
 
+class TestRefresh:
     @pytest.mark.asyncio
     async def test_valid_refresh_token_returns_new_pair(
         self, client: AsyncClient, registered_user: dict
     ):
         old_refresh = registered_user["tokens"]["refresh_token"]
-        old_access  = registered_user["tokens"]["access_token"]
+        old_access = registered_user["tokens"]["access_token"]
 
         resp = await client.post(
             "/v1/auth/refresh",
@@ -172,9 +171,7 @@ class TestRefresh:
         assert body["refresh_token"] != old_refresh
 
     @pytest.mark.asyncio
-    async def test_used_refresh_token_returns_401(
-        self, client: AsyncClient, registered_user: dict
-    ):
+    async def test_used_refresh_token_returns_401(self, client: AsyncClient, registered_user: dict):
         """Token rotation — once used, the old token is invalid."""
         old_refresh = registered_user["tokens"]["refresh_token"]
 
@@ -198,8 +195,8 @@ class TestRefresh:
 # POST /v1/auth/logout
 # ══════════════════════════════════════════════════════════════════
 
-class TestLogout:
 
+class TestLogout:
     @pytest.mark.asyncio
     async def test_logout_invalidates_refresh_token(
         self, client: AsyncClient, registered_user: dict, auth_headers: dict
@@ -234,8 +231,8 @@ class TestLogout:
 # GET /v1/auth/me
 # ══════════════════════════════════════════════════════════════════
 
-class TestMe:
 
+class TestMe:
     @pytest.mark.asyncio
     async def test_me_returns_user_identity(
         self, client: AsyncClient, auth_headers: dict, registered_user: dict
@@ -290,12 +287,10 @@ class TestMe:
 # POST /v1/auth/change-password
 # ══════════════════════════════════════════════════════════════════
 
-class TestChangePassword:
 
+class TestChangePassword:
     @pytest.mark.asyncio
-    async def test_valid_change_returns_200(
-        self, client: AsyncClient, auth_headers: dict
-    ):
+    async def test_valid_change_returns_200(self, client: AsyncClient, auth_headers: dict):
         resp = await client.post(
             "/v1/auth/change-password",
             json={"current_password": "Secure123", "new_password": "NewSecure9"},
@@ -316,9 +311,7 @@ class TestChangePassword:
         assert resp.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_weak_new_password_returns_422(
-        self, client: AsyncClient, auth_headers: dict
-    ):
+    async def test_weak_new_password_returns_422(self, client: AsyncClient, auth_headers: dict):
         resp = await client.post(
             "/v1/auth/change-password",
             json={"current_password": "Secure123", "new_password": "weak"},

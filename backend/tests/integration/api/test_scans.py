@@ -14,7 +14,7 @@ async def test_create_scan_job(
     payload = {
         "target_ips": ["127.0.0.1", "192.168.1.1"],
         "scan_type": "discovery",
-        "scan_options": {"aggressiveness": "high"}
+        "scan_options": {"aggressiveness": "high"},
     }
 
     resp = await client.post("/v1/scans", json=payload, headers=auth_headers)

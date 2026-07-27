@@ -26,6 +26,7 @@ Hierarchy:
       ├── AnthropicAPIError
       └── RateLimitError
 """
+
 from __future__ import annotations
 
 
@@ -39,6 +40,7 @@ class VulnAssessError(Exception):
 
 
 # ── Authentication ─────────────────────────────────────────────
+
 
 class AuthenticationError(VulnAssessError):
     """Credentials invalid or token unusable."""
@@ -77,6 +79,7 @@ class MFAInvalidError(AuthenticationError):
 
 # ── Authorization ──────────────────────────────────────────────
 
+
 class AuthorizationError(VulnAssessError):
     """Caller is authenticated but lacks permission."""
 
@@ -105,6 +108,7 @@ class TenantIsolationError(AuthorizationError):
 
 # ── Resource errors ────────────────────────────────────────────
 
+
 class ResourceNotFoundError(VulnAssessError):
     """Requested resource does not exist (or is invisible to this tenant)."""
 
@@ -131,6 +135,7 @@ class ResourceConflictError(VulnAssessError):
 
 # ── Validation errors ──────────────────────────────────────────
 
+
 class ValidationError(VulnAssessError):
     """Input data failed domain-level validation."""
 
@@ -151,6 +156,7 @@ class InvalidCIDRError(ValidationError):
 
 # ── Plan / quota ───────────────────────────────────────────────
 
+
 class PlanLimitError(VulnAssessError):
     """Operation would exceed the organisation's plan quota."""
 
@@ -165,6 +171,7 @@ class PlanLimitError(VulnAssessError):
 
 
 # ── External service errors ────────────────────────────────────
+
 
 class ExternalServiceError(VulnAssessError):
     """An external API call failed."""
@@ -195,6 +202,7 @@ class RateLimitError(ExternalServiceError):
 
 
 # ── Scan errors ────────────────────────────────────────────────
+
 
 class ScanError(VulnAssessError):
     """Base for scan-related failures."""

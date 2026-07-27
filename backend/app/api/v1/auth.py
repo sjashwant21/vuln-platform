@@ -51,6 +51,7 @@ def _get_client_ip(request: Request) -> str | None:
 
 # ── POST /auth/register ────────────────────────────────────────
 
+
 @router.post(
     "/register",
     response_model=RegisterResponse,
@@ -59,7 +60,7 @@ def _get_client_ip(request: Request) -> str | None:
 )
 @limiter.limit("5/minute")
 async def register(
-    body:    RegisterRequest,
+    body: RegisterRequest,
     service: AuthSvc,
     request: Request,
 ) -> RegisterResponse:
@@ -111,6 +112,7 @@ async def register(
 
 # ── POST /auth/login ───────────────────────────────────────────
 
+
 @router.post(
     "/login",
     response_model=TokenResponse,
@@ -118,7 +120,7 @@ async def register(
 )
 @limiter.limit("5/minute")
 async def login(
-    body:    LoginRequest,
+    body: LoginRequest,
     service: AuthSvc,
     request: Request,
 ) -> TokenResponse:
@@ -138,13 +140,14 @@ async def login(
 
 # ── POST /auth/refresh ─────────────────────────────────────────
 
+
 @router.post(
     "/refresh",
     response_model=TokenResponse,
     summary="Rotate refresh token and get a new access token",
 )
 async def refresh_token(
-    body:    RefreshRequest,
+    body: RefreshRequest,
     service: AuthSvc,
     request: Request,
 ) -> TokenResponse:
@@ -163,14 +166,15 @@ async def refresh_token(
 
 # ── POST /auth/logout ──────────────────────────────────────────
 
+
 @router.post(
     "/logout",
     response_model=MessageResponse,
     summary="Revoke the current refresh token",
 )
 async def logout(
-    body:         LogoutRequest,
-    service:      AuthSvc,
+    body: LogoutRequest,
+    service: AuthSvc,
     current_user: CurrentUser,
 ) -> MessageResponse:
     await service.logout(
@@ -182,14 +186,15 @@ async def logout(
 
 # ── POST /auth/change-password ─────────────────────────────────
 
+
 @router.post(
     "/change-password",
     response_model=MessageResponse,
     summary="Change the authenticated user's password",
 )
 async def change_password(
-    body:         ChangePasswordRequest,
-    service:      AuthSvc,
+    body: ChangePasswordRequest,
+    service: AuthSvc,
     current_user: CurrentUser,
 ) -> MessageResponse:
     await service.change_password(
@@ -205,6 +210,7 @@ async def change_password(
 
 # ── GET /auth/me ───────────────────────────────────────────────
 
+
 @router.get(
     "/me",
     summary="Return the current user's identity from the JWT",
@@ -213,7 +219,7 @@ async def get_me(current_user: CurrentUser) -> dict:
     """Lightweight endpoint — decodes the token only, no DB hit."""
     return {
         "user_id": current_user.user_id,
-        "org_id":  current_user.org_id,
-        "role":    current_user.role,
-        "email":   current_user.email,
+        "org_id": current_user.org_id,
+        "role": current_user.role,
+        "email": current_user.email,
     }

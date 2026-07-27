@@ -14,6 +14,7 @@ Every provider must implement exactly two methods:
 The factory function get_provider() is the single injection point —
 callers never instantiate providers directly.
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
@@ -35,11 +36,11 @@ class LLMProviderProtocol(Protocol):
     async def complete(
         self,
         system_prompt: str,
-        user_prompt:   str,
+        user_prompt: str,
         *,
-        temperature:   float | None = None,
-        max_tokens:    int   | None = None,
-        json_mode:     bool         = False,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        json_mode: bool = False,
     ) -> LLMResponse:
         """
         Send a single completion request and return the full response.
@@ -64,10 +65,10 @@ class LLMProviderProtocol(Protocol):
     async def stream(
         self,
         system_prompt: str,
-        user_prompt:   str,
+        user_prompt: str,
         *,
         temperature: float | None = None,
-        max_tokens:  int   | None = None,
+        max_tokens: int | None = None,
     ) -> AsyncGenerator[str, None]:
         """
         Stream response tokens as they are generated.
@@ -91,11 +92,13 @@ class LLMProviderProtocol(Protocol):
 
 # ── Provider errors ────────────────────────────────────────────
 
+
 class LLMProviderError(Exception):
     """Base for all LLM provider errors."""
+
     def __init__(self, provider: str, message: str, status_code: int | None = None) -> None:
         super().__init__(f"[{provider}] {message}")
-        self.provider    = provider
+        self.provider = provider
         self.status_code = status_code
 
 
@@ -105,6 +108,7 @@ class LLMTimeoutError(LLMProviderError):
 
 class LLMRateLimitError(LLMProviderError):
     """Provider returned a rate limit response."""
+
     def __init__(self, provider: str, retry_after_s: int | None = None) -> None:
         super().__init__(provider, f"Rate limited. Retry after {retry_after_s}s")
         self.retry_after_s = retry_after_s
@@ -116,14 +120,16 @@ class LLMContextLengthError(LLMProviderError):
 
 class LLMOutputParseError(Exception):
     """Provider returned output that failed structured parsing."""
+
     def __init__(self, stage: str, raw_output: str, reason: str) -> None:
         super().__init__(f"Failed to parse {stage} output: {reason}")
-        self.stage      = stage
+        self.stage = stage
         self.raw_output = raw_output
-        self.reason     = reason
+        self.reason = reason
 
 
 # ── Provider factory ───────────────────────────────────────────
+
 
 def get_provider(config: ProviderConfig) -> LLMProviderProtocol:
     """
@@ -136,22 +142,27 @@ def get_provider(config: ProviderConfig) -> LLMProviderProtocol:
 
     if config.provider == LLMProvider.ANTHROPIC:
         from app.infrastructure.ai.providers.anthropic_provider import AnthropicProvider
+
         return AnthropicProvider(config)
 
     if config.provider == LLMProvider.OPENAI:
         from app.infrastructure.ai.providers.openai_provider import OpenAIProvider
+
         return OpenAIProvider(config)
 
     if config.provider == LLMProvider.GROQ:
         from app.infrastructure.ai.providers.groq_provider import GroqProvider
+
         return GroqProvider(config)
 
     if config.provider == LLMProvider.GEMINI:
         from app.infrastructure.ai.providers.gemini_provider import GeminiProvider
+
         return GeminiProvider(config)
 
     if config.provider == LLMProvider.LOCAL:
         from app.infrastructure.ai.providers.local_provider import LocalLLMProvider
+
         return LocalLLMProvider(config)
 
     raise ValueError(f"Unknown provider: {config.provider}")

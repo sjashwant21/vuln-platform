@@ -1,6 +1,7 @@
 """
 Integration tests for /v1/users/* and /v1/organizations/* routes.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -21,8 +22,8 @@ REGISTER_2: dict[str, Any] = {
 # GET /v1/users/me
 # ══════════════════════════════════════════════════════════════════
 
-class TestGetMe:
 
+class TestGetMe:
     @pytest.mark.asyncio
     async def test_returns_own_profile(
         self, client: AsyncClient, auth_headers: dict, registered_user: dict
@@ -45,12 +46,10 @@ class TestGetMe:
 # PATCH /v1/users/me
 # ══════════════════════════════════════════════════════════════════
 
-class TestUpdateProfile:
 
+class TestUpdateProfile:
     @pytest.mark.asyncio
-    async def test_updates_full_name(
-        self, client: AsyncClient, auth_headers: dict
-    ):
+    async def test_updates_full_name(self, client: AsyncClient, auth_headers: dict):
         resp = await client.patch(
             "/v1/users/me",
             json={"full_name": "Alice Updated"},
@@ -60,9 +59,7 @@ class TestUpdateProfile:
         assert resp.json()["full_name"] == "Alice Updated"
 
     @pytest.mark.asyncio
-    async def test_empty_body_is_noop(
-        self, client: AsyncClient, auth_headers: dict
-    ):
+    async def test_empty_body_is_noop(self, client: AsyncClient, auth_headers: dict):
         resp = await client.patch(
             "/v1/users/me",
             json={},
@@ -71,9 +68,7 @@ class TestUpdateProfile:
         assert resp.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_blank_name_rejected(
-        self, client: AsyncClient, auth_headers: dict
-    ):
+    async def test_blank_name_rejected(self, client: AsyncClient, auth_headers: dict):
         resp = await client.patch(
             "/v1/users/me",
             json={"full_name": "   "},
@@ -86,12 +81,10 @@ class TestUpdateProfile:
 # GET /v1/users
 # ══════════════════════════════════════════════════════════════════
 
-class TestListUsers:
 
+class TestListUsers:
     @pytest.mark.asyncio
-    async def test_admin_can_list_users(
-        self, client: AsyncClient, auth_headers: dict
-    ):
+    async def test_admin_can_list_users(self, client: AsyncClient, auth_headers: dict):
         resp = await client.get("/v1/users", headers=auth_headers)
         assert resp.status_code == 200
         body = resp.json()
@@ -100,9 +93,7 @@ class TestListUsers:
         assert body["total"] >= 1
 
     @pytest.mark.asyncio
-    async def test_pagination_params_respected(
-        self, client: AsyncClient, auth_headers: dict
-    ):
+    async def test_pagination_params_respected(self, client: AsyncClient, auth_headers: dict):
         resp = await client.get(
             "/v1/users?limit=1&offset=0",
             headers=auth_headers,
@@ -119,9 +110,7 @@ class TestListUsers:
         assert resp.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_users_from_other_orgs_not_visible(
-        self, client: AsyncClient, auth_headers: dict
-    ):
+    async def test_users_from_other_orgs_not_visible(self, client: AsyncClient, auth_headers: dict):
         """Bob registers his own org — Alice should not see Bob."""
         await client.post("/v1/auth/register", json=REGISTER_2)
 
@@ -134,12 +123,10 @@ class TestListUsers:
 # GET /v1/organizations/me
 # ══════════════════════════════════════════════════════════════════
 
-class TestGetOrg:
 
+class TestGetOrg:
     @pytest.mark.asyncio
-    async def test_returns_own_org(
-        self, client: AsyncClient, auth_headers: dict
-    ):
+    async def test_returns_own_org(self, client: AsyncClient, auth_headers: dict):
         resp = await client.get("/v1/organizations/me", headers=auth_headers)
         assert resp.status_code == 200
         body = resp.json()
@@ -157,12 +144,10 @@ class TestGetOrg:
 # PATCH /v1/organizations/me
 # ══════════════════════════════════════════════════════════════════
 
-class TestUpdateOrg:
 
+class TestUpdateOrg:
     @pytest.mark.asyncio
-    async def test_owner_can_update_org_name(
-        self, client: AsyncClient, auth_headers: dict
-    ):
+    async def test_owner_can_update_org_name(self, client: AsyncClient, auth_headers: dict):
         resp = await client.patch(
             "/v1/organizations/me",
             json={"name": "Acme Security Renamed"},
@@ -172,9 +157,7 @@ class TestUpdateOrg:
         assert resp.json()["name"] == "Acme Security Renamed"
 
     @pytest.mark.asyncio
-    async def test_empty_name_rejected(
-        self, client: AsyncClient, auth_headers: dict
-    ):
+    async def test_empty_name_rejected(self, client: AsyncClient, auth_headers: dict):
         resp = await client.patch(
             "/v1/organizations/me",
             json={"name": ""},
@@ -195,8 +178,8 @@ class TestUpdateOrg:
 # GET /health
 # ══════════════════════════════════════════════════════════════════
 
-class TestHealth:
 
+class TestHealth:
     @pytest.mark.asyncio
     async def test_health_check_returns_ok(self, client: AsyncClient):
         resp = await client.get("/health")

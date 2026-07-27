@@ -27,9 +27,9 @@ async def _run_nmap_scan_async(job_id: str) -> None:
 
         from app.infrastructure.database.models import ScanJobModel
 
-        job = (await session.execute(
-            select(ScanJobModel).where(ScanJobModel.id == job_id)
-        )).scalar_one_or_none()
+        job = (
+            await session.execute(select(ScanJobModel).where(ScanJobModel.id == job_id))
+        ).scalar_one_or_none()
 
         if not job:
             logger.error("scan_job_not_found", job_id=job_id)
@@ -45,11 +45,13 @@ async def _run_nmap_scan_async(job_id: str) -> None:
 
             # Upsert assets first
             for ip in target_ips:
-                await asset_repo.upsert_asset({
-                    "organization_id": org_id,
-                    "ip_address": ip,
-                    "asset_type": "host",
-                })
+                await asset_repo.upsert_asset(
+                    {
+                        "organization_id": org_id,
+                        "ip_address": ip,
+                        "asset_type": "host",
+                    }
+                )
             await session.commit()
 
             # Execute nmap via subprocess
@@ -90,8 +92,12 @@ async def _run_nmap_scan_async(job_id: str) -> None:
                     protocol = port_elem.get("protocol")
 
                     service_elem = port_elem.find("service")
-                    service_name = service_elem.get("name") if service_elem is not None else "unknown"
-                    service_version = service_elem.get("version") if service_elem is not None else None
+                    service_name = (
+                        service_elem.get("name") if service_elem is not None else "unknown"
+                    )
+                    service_version = (
+                        service_elem.get("version") if service_elem is not None else None
+                    )
 
                     # Upsert port
                     await asset_repo.upsert_port(
@@ -101,8 +107,8 @@ async def _run_nmap_scan_async(job_id: str) -> None:
                             "protocol": protocol,
                             "service": service_name,
                             "service_version": service_version,
-                            "state": "open"
-                        }
+                            "state": "open",
+                        },
                     )
 
                     # Create finding for the open port/service
@@ -114,7 +120,7 @@ async def _run_nmap_scan_async(job_id: str) -> None:
                         "severity": "info",
                         "title": f"Open Port: {port_num}/{protocol} ({service_name})",
                         "description": f"Service {service_name} {service_version or ''} is running on port {port_num}.",
-                        "raw_output": {"service": service_name, "version": service_version}
+                        "raw_output": {"service": service_name, "version": service_version},
                     }
                     await scan_repo.create_finding(finding_data)
                     findings_created += 1
@@ -125,7 +131,7 @@ async def _run_nmap_scan_async(job_id: str) -> None:
             await scan_repo.update_job_status(
                 job_id,
                 ScanStatus.COMPLETED,
-                extra_data={"result_summary": {"findings_count": findings_created}}
+                extra_data={"result_summary": {"findings_count": findings_created}},
             )
             await session.commit()
 
@@ -133,9 +139,7 @@ async def _run_nmap_scan_async(job_id: str) -> None:
             logger.exception("nmap_scan_failed", job_id=job_id, error=str(e))
             await session.rollback()
             await scan_repo.update_job_status(
-                job_id,
-                ScanStatus.FAILED,
-                extra_data={"error_message": str(e)}
+                job_id, ScanStatus.FAILED, extra_data={"error_message": str(e)}
             )
             await session.commit()
 
@@ -147,4 +151,5 @@ def run_nmap_scan_task(self, job_id: str) -> None:
 
     # Trigger AI Analyst to generate remediation plans
     from app.workers.tasks.analyst import run_ai_analysis_task
+
     run_ai_analysis_task.delay(job_id)

@@ -5,6 +5,7 @@ Used by Docker HEALTHCHECK, load balancers, and uptime monitors.
 The deep check verifies DB and Redis connectivity.
 Never requires authentication — monitoring agents don't have JWTs.
 """
+
 from __future__ import annotations
 
 from typing import Literal
@@ -22,8 +23,8 @@ router = APIRouter(tags=["Health"])
 
 
 class HealthResponse(BaseModel):
-    status:   Literal["ok", "degraded", "down"]
-    version:  str
+    status: Literal["ok", "degraded", "down"]
+    version: str
     database: Literal["ok", "error"]
 
 
@@ -35,6 +36,7 @@ class HealthResponse(BaseModel):
 )
 async def health_check() -> HealthResponse:
     from app.config import get_settings
+
     cfg = get_settings()
 
     db_status: Literal["ok", "error"] = "error"
@@ -45,9 +47,7 @@ async def health_check() -> HealthResponse:
     except Exception as e:
         logger.warning("health_check_db_failed", error=str(e))
 
-    overall: Literal["ok", "degraded", "down"] = (
-        "ok" if db_status == "ok" else "degraded"
-    )
+    overall: Literal["ok", "degraded", "down"] = "ok" if db_status == "ok" else "degraded"
 
     return HealthResponse(
         status=overall,

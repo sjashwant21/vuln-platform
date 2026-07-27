@@ -8,9 +8,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class ScanJobCreate(BaseModel):
     """Payload for launching a new scan."""
+
     target_ips: list[str] = Field(..., min_length=1, description="List of IPs or subnets to scan")
     scan_type: str = Field(default="discovery", description="Type of scan (discovery, full, quick)")
-    scan_options: dict[str, Any] = Field(default_factory=dict, description="Additional scanner options")
+    scan_options: dict[str, Any] = Field(
+        default_factory=dict, description="Additional scanner options"
+    )
 
 
 class ScanFindingResponse(BaseModel):

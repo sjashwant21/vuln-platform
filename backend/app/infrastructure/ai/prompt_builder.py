@@ -14,6 +14,7 @@ Design decisions:
   5. Chain-of-thought is elicited with "Think step by step" in analytical stages
   6. Temperature 0.1 enforced in config — determinism over creativity
 """
+
 from __future__ import annotations
 
 import json
@@ -53,6 +54,7 @@ Start your response with { and end with }."""
 # Input serialiser — converts AnalysisRequest to structured text
 # ══════════════════════════════════════════════════════════════════
 
+
 class PromptBuilder:
     """
     Builds prompts for each analysis stage.
@@ -68,7 +70,7 @@ class PromptBuilder:
 
     def build(
         self,
-        stage:   AnalysisStage,
+        stage: AnalysisStage,
         request: AnalysisRequest,
         prior_outputs: dict[str, str] | None = None,
     ) -> tuple[str, str]:
@@ -86,11 +88,11 @@ class PromptBuilder:
         data_block = self._serialise_request(request)
 
         builders = {
-            AnalysisStage.TRIAGE:        self._executive_summary_prompts,
-            AnalysisStage.TECHNICAL:     self._technical_analysis_prompts,
+            AnalysisStage.TRIAGE: self._executive_summary_prompts,
+            AnalysisStage.TECHNICAL: self._technical_analysis_prompts,
             AnalysisStage.RISK_PRIORITY: self._risk_prioritization_prompts,
-            AnalysisStage.REMEDIATION:   self._remediation_prompts,
-            AnalysisStage.EXECUTIVE:     self._management_summary_prompts,
+            AnalysisStage.REMEDIATION: self._remediation_prompts,
+            AnalysisStage.EXECUTIVE: self._management_summary_prompts,
         }
 
         builder = builders.get(stage)
@@ -103,26 +105,29 @@ class PromptBuilder:
 
     def _executive_summary_prompts(
         self,
-        data_block:    str,
+        data_block: str,
         prior_outputs: dict[str, str],
     ) -> tuple[str, str]:
-        schema = json.dumps({
-            "overall_risk_level": "critical|high|medium|low|info",
-            "headline": "One sentence — the single most important finding",
-            "business_impact": "2-3 sentences. What could go wrong for the business? Use plain language, no CVE IDs.",
-            "key_findings": [
-                "Finding 1 in plain language (no CVE IDs, no technical jargon)",
-                "Finding 2...",
-                "Finding 3...",
-                "Finding 4 (optional)",
-                "Finding 5 (optional)"
-            ],
-            "immediate_actions": [
-                "Specific action that must happen TODAY",
-                "Another immediate action (max 3)"
-            ],
-            "confidence": 0.95
-        }, indent=2)
+        schema = json.dumps(
+            {
+                "overall_risk_level": "critical|high|medium|low|info",
+                "headline": "One sentence — the single most important finding",
+                "business_impact": "2-3 sentences. What could go wrong for the business? Use plain language, no CVE IDs.",
+                "key_findings": [
+                    "Finding 1 in plain language (no CVE IDs, no technical jargon)",
+                    "Finding 2...",
+                    "Finding 3...",
+                    "Finding 4 (optional)",
+                    "Finding 5 (optional)",
+                ],
+                "immediate_actions": [
+                    "Specific action that must happen TODAY",
+                    "Another immediate action (max 3)",
+                ],
+                "confidence": 0.95,
+            },
+            indent=2,
+        )
 
         system = f"""{_ANALYST_PERSONA}
 
@@ -160,36 +165,39 @@ Produce the executive summary JSON now."""
 
     def _technical_analysis_prompts(
         self,
-        data_block:    str,
+        data_block: str,
         prior_outputs: dict[str, str],
     ) -> tuple[str, str]:
-        schema = json.dumps({
-            "attack_surface_summary": "2-3 sentences describing the exposed attack surface",
-            "most_critical_path": "Narrative description of the highest-risk attack chain from external attacker to worst outcome",
-            "findings": [
-                {
-                    "cve_id": "CVE-YYYY-NNNNN or null for non-CVE findings",
-                    "title": "Short descriptive title",
-                    "affected_service": "service name",
-                    "affected_port": 443,
-                    "technical_detail": "Deep technical explanation for security engineers",
-                    "attack_scenario": "Step-by-step: 1. Attacker scans... 2. Attacker exploits... 3. Attacker achieves...",
-                    "exploitation_complexity": "trivial|moderate|complex",
-                    "blast_radius": "What an attacker gains: e.g., 'full root access to the server, access to internal network'",
-                    "confidence": 0.9
-                }
-            ],
-            "threat_indicators": [
-                {
-                    "indicator": "What was observed",
-                    "threat_type": "e.g. Remote Code Execution, Privilege Escalation",
-                    "cve_refs": ["CVE-YYYY-NNNNN"],
-                    "confidence": 0.85
-                }
-            ],
-            "lateral_movement_risk": "Assessment of attacker's ability to move through the network after initial compromise",
-            "data_exfiltration_risk": "Assessment of what data could be stolen and how"
-        }, indent=2)
+        schema = json.dumps(
+            {
+                "attack_surface_summary": "2-3 sentences describing the exposed attack surface",
+                "most_critical_path": "Narrative description of the highest-risk attack chain from external attacker to worst outcome",
+                "findings": [
+                    {
+                        "cve_id": "CVE-YYYY-NNNNN or null for non-CVE findings",
+                        "title": "Short descriptive title",
+                        "affected_service": "service name",
+                        "affected_port": 443,
+                        "technical_detail": "Deep technical explanation for security engineers",
+                        "attack_scenario": "Step-by-step: 1. Attacker scans... 2. Attacker exploits... 3. Attacker achieves...",
+                        "exploitation_complexity": "trivial|moderate|complex",
+                        "blast_radius": "What an attacker gains: e.g., 'full root access to the server, access to internal network'",
+                        "confidence": 0.9,
+                    }
+                ],
+                "threat_indicators": [
+                    {
+                        "indicator": "What was observed",
+                        "threat_type": "e.g. Remote Code Execution, Privilege Escalation",
+                        "cve_refs": ["CVE-YYYY-NNNNN"],
+                        "confidence": 0.85,
+                    }
+                ],
+                "lateral_movement_risk": "Assessment of attacker's ability to move through the network after initial compromise",
+                "data_exfiltration_risk": "Assessment of what data could be stolen and how",
+            },
+            indent=2,
+        )
 
         system = f"""{_ANALYST_PERSONA}
 
@@ -226,31 +234,34 @@ Produce the technical analysis JSON now."""
 
     def _risk_prioritization_prompts(
         self,
-        data_block:    str,
+        data_block: str,
         prior_outputs: dict[str, str],
     ) -> tuple[str, str]:
         prior_context = ""
         if "executive" in prior_outputs:
             prior_context = f"\nEXECUTIVE SUMMARY (for context):\n{prior_outputs['executive']}\n"
 
-        schema = json.dumps({
-            "prioritized_vulns": [
-                {
-                    "cve_id": "CVE-YYYY-NNNNN — MUST be from input list",
-                    "title": "Vulnerability title",
-                    "risk_level": "critical|high|medium|low",
-                    "priority_score": 87.5,
-                    "cvss_score": 9.8,
-                    "business_context": "Why this matters to the business specifically",
-                    "exploitability": "actively exploited|poc available|theoretical",
-                    "time_to_exploit": "e.g. '15 minutes with public tools' or '2-4 hours for skilled attacker'",
-                    "affected_service": "service name and port",
-                    "priority_rationale": "One sentence: why this is ranked here vs others"
-                }
-            ],
-            "top_3_rationale": "Explanation of why the top 3 are most urgent, beyond just their CVSS scores",
-            "risk_acceptance_note": "What it means in practical terms to defer action on the lower-priority items"
-        }, indent=2)
+        schema = json.dumps(
+            {
+                "prioritized_vulns": [
+                    {
+                        "cve_id": "CVE-YYYY-NNNNN — MUST be from input list",
+                        "title": "Vulnerability title",
+                        "risk_level": "critical|high|medium|low",
+                        "priority_score": 87.5,
+                        "cvss_score": 9.8,
+                        "business_context": "Why this matters to the business specifically",
+                        "exploitability": "actively exploited|poc available|theoretical",
+                        "time_to_exploit": "e.g. '15 minutes with public tools' or '2-4 hours for skilled attacker'",
+                        "affected_service": "service name and port",
+                        "priority_rationale": "One sentence: why this is ranked here vs others",
+                    }
+                ],
+                "top_3_rationale": "Explanation of why the top 3 are most urgent, beyond just their CVSS scores",
+                "risk_acceptance_note": "What it means in practical terms to defer action on the lower-priority items",
+            },
+            indent=2,
+        )
 
         system = f"""{_ANALYST_PERSONA}
 
@@ -293,7 +304,7 @@ Produce the risk prioritization JSON now. Order vulnerabilities by actual busine
 
     def _remediation_prompts(
         self,
-        data_block:    str,
+        data_block: str,
         prior_outputs: dict[str, str],
     ) -> tuple[str, str]:
         prior_context = ""
@@ -303,38 +314,39 @@ Produce the risk prioritization JSON now. Order vulnerabilities by actual busine
                 f"{prior_outputs['risk_priority']}\n"
             )
 
-        schema = json.dumps({
-            "immediate_actions": [
-                {
-                    "cve_id": "CVE-YYYY-NNNNN — MUST be from input list",
-                    "title": "What needs to be done",
-                    "effort": "immediate|short_term|medium_term|long_term",
-                    "priority": 1,
-                    "steps": [
-                        {
-                            "step_number": 1,
-                            "title": "Step title",
-                            "description": "Detailed description",
-                            "commands": ["exact command 1", "exact command 2"],
-                            "verification": "How to verify this step worked",
-                            "estimated_time": "15 minutes",
-                            "requires_restart": False,
-                            "requires_downtime": False
-                        }
-                    ],
-                    "prerequisites": ["What must be done before this"],
-                    "rollback_plan": "How to undo this if it breaks something",
-                    "references": ["https://vendor.com/advisory", "https://cve.mitre.org/..."],
-                    "confidence": 0.9
-                }
-            ],
-            "short_term_actions": [],
-            "long_term_actions": [],
-            "quick_wins": [
-                "Action that takes < 30 minutes and significantly reduces risk"
-            ],
-            "estimated_total_effort": "e.g. '3 engineer-days to address all critical/high findings'"
-        }, indent=2)
+        schema = json.dumps(
+            {
+                "immediate_actions": [
+                    {
+                        "cve_id": "CVE-YYYY-NNNNN — MUST be from input list",
+                        "title": "What needs to be done",
+                        "effort": "immediate|short_term|medium_term|long_term",
+                        "priority": 1,
+                        "steps": [
+                            {
+                                "step_number": 1,
+                                "title": "Step title",
+                                "description": "Detailed description",
+                                "commands": ["exact command 1", "exact command 2"],
+                                "verification": "How to verify this step worked",
+                                "estimated_time": "15 minutes",
+                                "requires_restart": False,
+                                "requires_downtime": False,
+                            }
+                        ],
+                        "prerequisites": ["What must be done before this"],
+                        "rollback_plan": "How to undo this if it breaks something",
+                        "references": ["https://vendor.com/advisory", "https://cve.mitre.org/..."],
+                        "confidence": 0.9,
+                    }
+                ],
+                "short_term_actions": [],
+                "long_term_actions": [],
+                "quick_wins": ["Action that takes < 30 minutes and significantly reduces risk"],
+                "estimated_total_effort": "e.g. '3 engineer-days to address all critical/high findings'",
+            },
+            indent=2,
+        )
 
         system = f"""{_ANALYST_PERSONA}
 
@@ -375,33 +387,35 @@ Produce the remediation recommendations JSON now."""
 
     def _management_summary_prompts(
         self,
-        data_block:    str,
+        data_block: str,
         prior_outputs: dict[str, str],
     ) -> tuple[str, str]:
         # This stage synthesises all prior stages
         synthesis = "\n".join(
-            f"\n{stage.upper()} ANALYSIS:\n{output}"
-            for stage, output in prior_outputs.items()
+            f"\n{stage.upper()} ANALYSIS:\n{output}" for stage, output in prior_outputs.items()
         )
 
-        schema = json.dumps({
-            "risk_headline":   "One sentence a non-technical manager can repeat to their board",
-            "security_score":  72,
-            "score_label":     "Fair",
-            "top_risks": [
-                "Risk 1 in plain English — what could happen and to what",
-                "Risk 2...",
-                "Risk 3 (max 5 total)"
-            ],
-            "business_risks": [
-                "Compliance: e.g. 'This configuration violates PCI-DSS requirement 6.3.3'",
-                "Financial: e.g. 'A breach could result in regulatory fines up to $X'",
-                "Reputational: e.g. 'Customer data exposure would require public disclosure'"
-            ],
-            "investment_needed":      "e.g. '2 engineer-days + $0 in software costs'",
-            "what_happens_if_ignored":"Clear statement of the consequence of inaction",
-            "what_we_recommend":      "Single paragraph: the recommended course of action and expected outcome"
-        }, indent=2)
+        schema = json.dumps(
+            {
+                "risk_headline": "One sentence a non-technical manager can repeat to their board",
+                "security_score": 72,
+                "score_label": "Fair",
+                "top_risks": [
+                    "Risk 1 in plain English — what could happen and to what",
+                    "Risk 2...",
+                    "Risk 3 (max 5 total)",
+                ],
+                "business_risks": [
+                    "Compliance: e.g. 'This configuration violates PCI-DSS requirement 6.3.3'",
+                    "Financial: e.g. 'A breach could result in regulatory fines up to $X'",
+                    "Reputational: e.g. 'Customer data exposure would require public disclosure'",
+                ],
+                "investment_needed": "e.g. '2 engineer-days + $0 in software costs'",
+                "what_happens_if_ignored": "Clear statement of the consequence of inaction",
+                "what_we_recommend": "Single paragraph: the recommended course of action and expected outcome",
+            },
+            indent=2,
+        )
 
         system = f"""{_ANALYST_PERSONA}
 
@@ -479,9 +493,13 @@ Produce the management summary JSON now."""
                 lines.append(f"    CVSS Vector:  {vuln.cvss_vector}")
             lines.append(f"    Service:      {vuln.service} (port {vuln.port or 'N/A'})")
             lines.append(f"    Affected Ver: {vuln.affected_version or 'Unknown'}")
-            lines.append(f"    Public Exploit: {'YES — ACTIVELY EXPLOITABLE' if vuln.has_public_exploit else 'No known public exploit'}")
+            lines.append(
+                f"    Public Exploit: {'YES — ACTIVELY EXPLOITABLE' if vuln.has_public_exploit else 'No known public exploit'}"
+            )
             lines.append(f"    Patch Available: {'YES' if vuln.has_patch else 'NO'}")
-            lines.append(f"    Description:  {vuln.description[:300]}{'...' if len(vuln.description) > 300 else ''}")
+            lines.append(
+                f"    Description:  {vuln.description[:300]}{'...' if len(vuln.description) > 300 else ''}"
+            )
             if vuln.references:
                 lines.append(f"    References:   {'; '.join(vuln.references[:3])}")
 
