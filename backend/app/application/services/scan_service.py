@@ -62,6 +62,45 @@ class ScanService:
 
         return job
 
+    async def create_upload_job(
+        self,
+        org_id: str,
+        user_id: str,
+        filepath: str,
+    ) -> ScanJobModel:
+        """Create a new scan job for an uploaded report and dispatch it."""
+        job_data = {
+            "organization_id": org_id,
+            "initiated_by_id": user_id,
+            "scan_type": "trivy",
+            "target_ips": [],
+            "scan_options": {"filepath": filepath},
+            "status": ScanStatus.PENDING.value,
+        }
+
+        job = await self._scan_repo.create_job(job_data)
+        logger.info("upload_job_created", job_id=job.id, org_id=org_id)
+
+        try:
+            from app.workers.tasks.trivy_scanner import parse_trivy_report_task
+            task = parse_trivy_report_task.delay(job_id=job.id, filepath=filepath)
+
+            await self._scan_repo.update_job_status(
+                job_id=job.id,
+                status=ScanStatus.QUEUED,
+                extra_data={"celery_task_id": task.id}
+            )
+            logger.info("upload_job_dispatched", job_id=job.id, celery_task_id=task.id)
+        except Exception as e:
+            logger.error("upload_job_dispatch_failed", job_id=job.id, error=str(e))
+            await self._scan_repo.update_job_status(
+                job_id=job.id,
+                status=ScanStatus.FAILED,
+                extra_data={"error_message": f"Failed to dispatch to worker: {str(e)}"}
+            )
+
+        return job
+
     async def get_scan_jobs(
         self,
         org_id: str,

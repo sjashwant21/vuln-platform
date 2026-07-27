@@ -9,7 +9,7 @@ celery_app = Celery(
     "vulnassess_worker",
     broker=cfg.celery_broker_url,
     backend=cfg.celery_result_backend,
-    include=["app.workers.tasks.scanner", "app.workers.tasks.analyst"],
+    include=["app.workers.tasks.scanner", "app.workers.tasks.analyst", "app.workers.tasks.trivy_scanner"],
 )
 
 # Optional configuration

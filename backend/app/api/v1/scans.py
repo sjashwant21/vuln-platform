@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import os
+import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 
 from app.api.schemas.scan_schemas import ScanJobCreate, ScanJobResponse
 from app.application.services.scan_service import ScanService
@@ -32,6 +34,37 @@ async def launch_scan(
         org_id=current_user.org_id,
         user_id=current_user.user_id,
         data=body,
+    )
+    return ScanJobResponse.model_validate(job)
+
+
+@router.post(
+    "/upload",
+    response_model=ScanJobResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload a Trivy scan report",
+)
+async def upload_scan_report(
+    current_user: CurrentUser,
+    scan_service: Annotated[ScanService, Depends(get_scan_service)],
+    file: UploadFile = File(...),
+) -> ScanJobResponse:
+    """
+    Upload a raw Trivy JSON report.
+    The job is queued to the Celery workers to be parsed asynchronously.
+    """
+    # Save the file to a temporary location
+    temp_dir = "/tmp/vulnassess_uploads"
+    os.makedirs(temp_dir, exist_ok=True)
+    temp_filepath = os.path.join(temp_dir, f"{uuid.uuid4()}.json")
+    
+    with open(temp_filepath, "wb") as f:
+        f.write(await file.read())
+
+    job = await scan_service.create_upload_job(
+        org_id=current_user.org_id,
+        user_id=current_user.user_id,
+        filepath=temp_filepath,
     )
     return ScanJobResponse.model_validate(job)
 

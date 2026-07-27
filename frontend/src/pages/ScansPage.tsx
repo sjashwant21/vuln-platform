@@ -11,7 +11,7 @@ import { Pagination } from '@/components/ui/Pagination'
 import { Modal } from '@/components/ui/Modal'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { usePermission } from '@/hooks/usePermission'
-import { Scan, Plus, X, Play, RefreshCw, Clock, CheckCircle, XCircle, AlertTriangle, Sparkles } from 'lucide-react'
+import { Scan, Plus, X, Play, RefreshCw, Clock, CheckCircle, XCircle, AlertTriangle, Sparkles, Upload } from 'lucide-react'
 import type { ScanJob, ScanType } from '@/types'
 import { formatDistanceToNow, format } from 'date-fns'
 
@@ -75,6 +75,11 @@ export function ScansPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['scans'] }),
   })
 
+  const upload = useMutation({
+    mutationFn: (file: File) => scansApi.uploadTrivy(file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['scans'] }),
+  })
+
   const columns = [
     { key: 'status', header: 'Status', render: (s: ScanJob) => (
       <div className="flex items-center gap-2">
@@ -117,8 +122,25 @@ export function ScansPage() {
     <div className="flex flex-col h-full">
       <TopBar title="Scans" subtitle={`${data?.total ?? 0} total scans`}
         actions={canWrite ? (
-          <Button size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => setShowNew(true)}>New Scan</Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" icon={<Upload className="w-4 h-4" />} onClick={() => document.getElementById('upload-trivy-input')?.click()} loading={upload.isPending}>Upload Scan Report</Button>
+            <Button size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => setShowNew(true)}>New Scan</Button>
+          </div>
         ) : undefined}
+      />
+
+      <input 
+        type="file" 
+        id="upload-trivy-input" 
+        className="hidden" 
+        accept=".json" 
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) {
+            upload.mutate(file)
+            e.target.value = ''
+          }
+        }} 
       />
 
       <div className="flex-1 p-6 space-y-4 overflow-y-auto">

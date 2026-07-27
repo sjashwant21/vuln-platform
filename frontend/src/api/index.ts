@@ -41,6 +41,11 @@ export const scansApi = {
   get: (id: string) => apiClient.get<ScanJob>(`/scans/${id}`).then(r => r.data),
   create: (data: { scan_type: string; target_ips: string[] }) =>
     apiClient.post<ScanJob>('/scans', data).then(r => r.data),
+  uploadTrivy: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiClient.post<ScanJob>('/scans/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
+  },
   cancel: (id: string) => apiClient.post(`/scans/${id}/cancel`),
   findings: (id: string) => apiClient.get<ScanFinding[]>(`/scans/${id}/findings`).then(r => r.data),
 }
