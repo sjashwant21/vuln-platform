@@ -1,23 +1,29 @@
 import argparse
+
+# ruff: noqa: T201
 import asyncio
 import random
 import uuid
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime
 
 from faker import Faker
 from sqlalchemy import text
 
 # Import paths for backend application
-from app.infrastructure.database.connection import create_engine_and_factory, get_session_factory, close_engine
+from app.infrastructure.database.connection import (
+    close_engine,
+    create_engine_and_factory,
+    get_session_factory,
+)
 from app.infrastructure.database.models import (
-    OrganizationModel,
-    UserModel,
     AssetModel,
     AssetPortModel,
-    ScanJobModel,
-    ScanFindingModel,
-    VulnerabilityModel,
+    OrganizationModel,
     RemediationPlanModel,
+    ScanFindingModel,
+    ScanJobModel,
+    UserModel,
+    VulnerabilityModel,
 )
 from app.infrastructure.security.password_handler import password_handler
 
@@ -42,7 +48,7 @@ async def reset_database(session):
         "organizations",
         "audit_logs",
     ]
-    
+
     for table in tables:
         await session.execute(text(f"TRUNCATE TABLE {table} CASCADE;"))
     await session.commit()
@@ -51,7 +57,7 @@ async def reset_database(session):
 
 async def generate_mock_data(session, orgs_count, users_per_org, assets_per_org, vulns_per_asset):
     """Generate and insert mock data into the database."""
-    
+
     # 1. Organizations
     organizations = []
     print(f"Generating {orgs_count} Organizations...")
@@ -112,14 +118,21 @@ async def generate_mock_data(session, orgs_count, users_per_org, assets_per_org,
             )
             session.add(asset)
             assets.append(asset)
-            
+
             # Ports
+            used_ports = set()
             for _ in range(random.randint(0, 3)):
+                port_num = random.choice([80, 443, 22, 21, 3306, 5432, 8080])
+                protocol = random.choice(["tcp", "udp"])
+                if (port_num, protocol) in used_ports:
+                    continue
+                used_ports.add((port_num, protocol))
+
                 port = AssetPortModel(
                     id=str(uuid.uuid4()),
                     asset_id=asset.id,
-                    port=random.choice([80, 443, 22, 21, 3306, 5432, 8080]),
-                    protocol=random.choice(["tcp", "udp"]),
+                    port=port_num,
+                    protocol=protocol,
                     service=random.choice(["http", "https", "ssh", "ftp", "mysql", "postgresql"]),
                     state="open",
                     scanned_at=datetime.now(UTC),
@@ -154,11 +167,11 @@ async def generate_mock_data(session, orgs_count, users_per_org, assets_per_org,
             cve_id = f"CVE-{random.randint(2015, 2024)}-{random.randint(1000, 99999)}"
             severity = random.choice(SEVERITIES)
             cvss = random.uniform(3.0, 10.0) if severity != "info" else None
-            
+
             # Create a Scan Job reference for the finding
             relevant_jobs = [j for j in scan_jobs if j.organization_id == asset.organization_id]
             job = random.choice(relevant_jobs) if relevant_jobs else None
-            
+
             finding_id = None
             if job:
                 finding = ScanFindingModel(
@@ -189,7 +202,7 @@ async def generate_mock_data(session, orgs_count, users_per_org, assets_per_org,
                 detected_at=fake.date_time_between(start_date='-1m', end_date='now', tzinfo=UTC),
             )
             session.add(vuln)
-            
+
             # Remediation Plan for high/critical vulns
             if severity in ["critical", "high"] and random.choice([True, False]):
                 plan = RemediationPlanModel(
@@ -203,7 +216,7 @@ async def generate_mock_data(session, orgs_count, users_per_org, assets_per_org,
                     generated_at=datetime.now(UTC),
                 )
                 session.add(plan)
-    
+
     await session.commit()
     print("Database seeding completed successfully!")
     print(f"Use the password '{DEFAULT_PASSWORD}' to log in with any generated email.")
@@ -221,11 +234,11 @@ async def main():
     # Init DB
     create_engine_and_factory()
     factory = get_session_factory()
-    
+
     async with factory() as session:
         if args.reset:
             await reset_database(session)
-        
+
         await generate_mock_data(
             session=session,
             orgs_count=args.orgs,
