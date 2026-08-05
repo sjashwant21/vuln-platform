@@ -24,7 +24,19 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.api.limiter import limiter
 from app.api.middleware.request_context import RequestContextMiddleware
-from app.api.v1 import analysis, assets, auth, dashboard, health, intelligence, organizations, reports, scans, users, vulnerabilities
+from app.api.v1 import (
+    analysis,
+    assets,
+    auth,
+    dashboard,
+    health,
+    intelligence,
+    organizations,
+    reports,
+    scans,
+    users,
+    vulnerabilities,
+)
 from app.config import get_settings
 from app.domain.exceptions import (
     AuthenticationError,

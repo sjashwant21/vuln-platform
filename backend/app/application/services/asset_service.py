@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import uuid
-from typing import Any
-
-from sqlalchemy import select, or_, and_, func
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -25,7 +22,7 @@ class AssetService:
 
         if criticality:
             stmt = stmt.where(AssetModel.criticality == criticality)
-        
+
         if search:
             stmt = stmt.where(
                 or_(
@@ -74,11 +71,11 @@ class AssetService:
 
     async def update_asset(self, org_id: str, asset_id: str, data: AssetUpdateRequest) -> AssetModel:
         asset = await self.get_asset(org_id, asset_id)
-        
+
         update_data = data.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(asset, key, value)
-            
+
         await self._s.commit()
         await self._s.refresh(asset)
         return asset

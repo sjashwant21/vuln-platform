@@ -15,9 +15,10 @@ from typing import Any
 
 # Use non-interactive Agg backend before any other matplotlib import
 import matplotlib
+
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
 import matplotlib.patches as mpatches  # noqa: E402
+import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
 # ── Colour palette (matches the HTML template) ──────────────────────────────
@@ -76,7 +77,7 @@ class ChartGenerator:
         ax.axis("off")
 
         # Background arc
-        theta1, theta2 = 180.0, 0.0  # half-circle, left→right
+        _theta1, _theta2 = 180.0, 0.0  # half-circle, left→right
         filled = score / 100.0
 
         bg = mpatches.Wedge(
@@ -128,7 +129,7 @@ class ChartGenerator:
         labels  = [k.capitalize() for k in keys]
 
         # Filter zero slices
-        filtered = [(v, c, l) for v, c, l in zip(values, colours, labels) if v > 0]
+        filtered = [(v, c, lbl) for v, c, lbl in zip(values, colours, labels) if v > 0]
         if not filtered:
             filtered = [(1, "#E5E7EB", "None")]
 
@@ -150,7 +151,7 @@ class ChartGenerator:
                 fontsize=9, fontweight="bold", color="#1F2937")
 
         ax.legend(
-            wedges, [f"{l} ({v})" for l, v in zip(lbls, vals)],
+            wedges, [f"{lbl} ({v})" for lbl, v in zip(lbls, vals)],
             loc="lower center", bbox_to_anchor=(0.5, -0.28),
             ncol=3, fontsize=6, frameon=False,
         )

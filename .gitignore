@@ -6,6 +6,8 @@
 .env
 .env.local
 .env.*.local
+.env.vercel
+.env.vercel.prod
 # (Note: .env.example should remain tracked)
 
 # ── Certificates & Private Keys ─────────────────────────────────────

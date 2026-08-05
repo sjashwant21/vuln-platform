@@ -6,17 +6,17 @@ from typing import Annotated
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.schemas.vulnerability_schemas import (
     RemediationPlanResponse,
-    VulnListResponse,
     VulnerabilityResponse,
+    VulnListResponse,
     VulnStatusUpdateRequest,
 )
 from app.application.services.vulnerability_service import VulnerabilityService
 from app.dependencies import CurrentUser, get_db_session
 from app.domain.exceptions import ResourceNotFoundError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = structlog.get_logger(__name__)
 
@@ -93,7 +93,6 @@ async def get_remediation(
 ) -> RemediationPlanResponse:
     """Fetch the latest AI-generated remediation plan for a vulnerability."""
     from sqlalchemy import and_, select
-    from sqlalchemy.orm import selectinload
 
     from app.infrastructure.database.models import RemediationPlanModel, VulnerabilityModel
 
