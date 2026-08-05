@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/auth.store'
 import { usersApi, orgApi } from '@/api'
 import { AppLayout } from '@/components/layout/AppLayout'
+import LandingPage          from '@/pages/LandingPage'
 import { LoginPage }          from '@/pages/LoginPage'
 import { RegisterPage }       from '@/pages/RegisterPage'
 import { DashboardPage }      from '@/pages/DashboardPage'
@@ -72,12 +73,13 @@ export default function App() {
         <AppBootstrap />
         <Routes>
           {/* Public */}
+          <Route path="/"         element={<LandingPage />} />
           <Route path="/login"    element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
           {/* Protected */}
           <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
-            <Route index                   element={<DashboardPage />} />
+            <Route path="dashboard"        element={<DashboardPage />} />
             <Route path="assets"           element={<AssetsPage />} />
             <Route path="scans"            element={<ScansPage />} />
             <Route path="vulnerabilities"  element={<VulnerabilitiesPage />} />

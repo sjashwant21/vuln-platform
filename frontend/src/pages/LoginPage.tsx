@@ -25,7 +25,7 @@ export function LoginPage() {
     },
     onSuccess: ({ user, org, tokens }) => {
       setAuth(user, org, tokens)
-      navigate('/')
+      navigate('/dashboard')
     },
     onError: () => setError('Invalid email or password'),
   })

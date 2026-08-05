@@ -24,7 +24,7 @@ export function RegisterPage() {
     mutationFn: () => authApi.register(form),
     onSuccess: ({ user, organization, tokens }) => {
       setAuth(user, organization, tokens)
-      navigate('/')
+      navigate('/dashboard')
     },
     onError: (e: unknown) => {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error
