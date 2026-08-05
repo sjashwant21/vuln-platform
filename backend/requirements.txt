@@ -23,9 +23,9 @@ pyotp==2.9.0
 cryptography==42.0.7
 
 # ── Cache / Queue (disabled on Vercel serverless — no Redis/worker support) ──
-# redis==5.0.4
-# celery==5.3.6
-# celery[redis]==5.3.6
+redis==5.0.4
+celery==5.3.6
+celery[redis]==5.3.6
 
 # ── HTTP client ────────────────────────────────────────────────
 httpx==0.27.0
