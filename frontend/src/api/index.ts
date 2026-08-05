@@ -76,4 +76,8 @@ export const reportsApi = {
     const match = disp.match(/filename="(.+)"/)
     return { blob: res.data as Blob, filename: match?.[1] ?? `report.${params.report_format}` }
   },
+  preview: async (type: ReportType) => {
+    const res = await apiClient.get(`/reports/preview?report_type=${type}`, { responseType: 'text' })
+    return res.data as string
+  }
 }

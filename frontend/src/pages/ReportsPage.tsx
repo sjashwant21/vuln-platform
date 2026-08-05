@@ -97,8 +97,15 @@ export function ReportsPage() {
     URL.revokeObjectURL(url)
   }
 
-  const previewReport = (type: ReportType) => {
-    window.open(`/v1/reports/preview?report_type=${type}`, '_blank')
+  const previewReport = async (type: ReportType) => {
+    try {
+      const res = await reportsApi.preview(type)
+      const blob = new Blob([res], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+    } catch (err) {
+      alert("Failed to load report preview")
+    }
   }
 
   return (
