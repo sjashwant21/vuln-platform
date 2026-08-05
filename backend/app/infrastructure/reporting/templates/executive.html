@@ -22,32 +22,34 @@
 
 {# ── Key metrics scorecard ── #}
 <h2>Key Metrics</h2>
-<div class="scorecard no-break">
-  <div class="score-card">
-    <div class="val val-accent">{{ report_data.health_score }}</div>
-    <div class="lbl">Security Score</div>
-  </div>
-  <div class="score-card">
-    <div class="val val-critical">{{ report_data.severity_distribution.critical }}</div>
-    <div class="lbl">Critical</div>
-  </div>
-  <div class="score-card">
-    <div class="val val-high">{{ report_data.severity_distribution.high }}</div>
-    <div class="lbl">High</div>
-  </div>
-  <div class="score-card">
-    <div class="val val-medium">{{ report_data.severity_distribution.medium }}</div>
-    <div class="lbl">Medium</div>
-  </div>
-  <div class="score-card">
-    <div class="val val-low">{{ report_data.severity_distribution.low }}</div>
-    <div class="lbl">Low</div>
-  </div>
-  <div class="score-card">
-    <div class="val val-accent">{{ report_data.total_assets }}</div>
-    <div class="lbl">Assets Scanned</div>
-  </div>
-</div>
+<table class="no-break" style="width:100%; border-collapse:collapse; margin:16px 0;">
+  <tr>
+    <td style="text-align:center; padding:12px 8px; background:#F9FAFB; border:1px solid #E5E7EB;">
+      <div class="val val-accent" style="font-size:22pt; font-weight:bold;">{{ report_data.health_score }}</div>
+      <div style="font-size:8pt; color:#6B7280; margin-top:3px;">Security Score</div>
+    </td>
+    <td style="text-align:center; padding:12px 8px; background:#F9FAFB; border:1px solid #E5E7EB;">
+      <div class="val val-critical" style="font-size:22pt; font-weight:bold;">{{ report_data.severity_distribution.critical }}</div>
+      <div style="font-size:8pt; color:#6B7280; margin-top:3px;">Critical</div>
+    </td>
+    <td style="text-align:center; padding:12px 8px; background:#F9FAFB; border:1px solid #E5E7EB;">
+      <div class="val val-high" style="font-size:22pt; font-weight:bold;">{{ report_data.severity_distribution.high }}</div>
+      <div style="font-size:8pt; color:#6B7280; margin-top:3px;">High</div>
+    </td>
+    <td style="text-align:center; padding:12px 8px; background:#F9FAFB; border:1px solid #E5E7EB;">
+      <div class="val val-medium" style="font-size:22pt; font-weight:bold;">{{ report_data.severity_distribution.medium }}</div>
+      <div style="font-size:8pt; color:#6B7280; margin-top:3px;">Medium</div>
+    </td>
+    <td style="text-align:center; padding:12px 8px; background:#F9FAFB; border:1px solid #E5E7EB;">
+      <div class="val val-low" style="font-size:22pt; font-weight:bold;">{{ report_data.severity_distribution.low }}</div>
+      <div style="font-size:8pt; color:#6B7280; margin-top:3px;">Low</div>
+    </td>
+    <td style="text-align:center; padding:12px 8px; background:#F9FAFB; border:1px solid #E5E7EB;">
+      <div class="val val-accent" style="font-size:22pt; font-weight:bold;">{{ report_data.total_assets }}</div>
+      <div style="font-size:8pt; color:#6B7280; margin-top:3px;">Assets Scanned</div>
+    </td>
+  </tr>
+</table>
 
 {# ── Risk trend ── #}
 {% if report_data.risk_trend %}

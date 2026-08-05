@@ -1,15 +1,15 @@
 """
-PDF renderer — Jinja2 HTML → WeasyPrint PDF.
+PDF renderer — Jinja2 HTML → xhtml2pdf PDF.
 
 Pipeline:
-  ReportData + charts → Jinja2 HTML string → WeasyPrint → PDF bytes
+  ReportData + charts → Jinja2 HTML string → xhtml2pdf → PDF bytes
 
-WeasyPrint is synchronous. We run it in a thread-pool executor
+xhtml2pdf is synchronous. We run it in a thread-pool executor
 via asyncio.get_event_loop().run_in_executor() to avoid blocking
 the async event loop during rendering (which can take 1-5 seconds).
 
-Font embedding: WeasyPrint bundles DejaVu fonts so PDFs are self-contained
-and render consistently across platforms.
+xhtml2pdf is 100% pure Python (built on ReportLab + html5lib),
+so it runs fine in Vercel's serverless environment with no system deps.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ _TEMPLATE_MAP = {
 
 
 class PDFRenderer:
-    """Renders ReportData to PDF bytes via Jinja2 + WeasyPrint."""
+    """Renders ReportData to PDF bytes via Jinja2 + xhtml2pdf."""
 
     def __init__(self) -> None:
         self._jinja_env = self._make_jinja_env()
@@ -58,7 +58,7 @@ class PDFRenderer:
     ) -> bytes:
         """
         Render ReportData to PDF bytes asynchronously.
-        Jinja2 rendering is sync; WeasyPrint is sync.
+        Jinja2 rendering is sync; xhtml2pdf is sync.
         Both run in a thread-pool executor.
         """
         loop = asyncio.get_event_loop()
@@ -83,19 +83,20 @@ class PDFRenderer:
 
     @staticmethod
     def _html_to_pdf(html_str: str) -> bytes:
-        from weasyprint import HTML
-        from weasyprint.text.fonts import FontConfiguration
-
-        font_config = FontConfiguration()
-        html_doc = HTML(string=html_str, base_url=str(_TEMPLATE_DIR))
+        """Convert an HTML string to PDF bytes using xhtml2pdf (pure Python)."""
+        from xhtml2pdf import pisa  # noqa: PLC0415
 
         buf = io.BytesIO()
-        html_doc.write_pdf(
-            buf,
-            font_config=font_config,
-            optimize_images=True,
-            uncompressed_pdf=False,
+        result = pisa.CreatePDF(
+            src=html_str,
+            dest=buf,
+            encoding="utf-8",
         )
+        if result.err:
+            raise RuntimeError(
+                f"xhtml2pdf conversion failed with {result.err} error(s). "
+                "Check the HTML template for unsupported CSS or malformed markup."
+            )
         buf.seek(0)
         return buf.read()
 

@@ -70,6 +70,9 @@ class ReportDataAssembler:
         period_end = datetime.now(UTC)
         period_start = period_end - timedelta(days=period_days)
 
+        async def _noop() -> list:
+            return []
+
         # Run heavy queries in parallel
         (
             assets,
@@ -84,7 +87,7 @@ class ReportDataAssembler:
             self._fetch_trend(org_id, period_days),
             self._fetch_compliance(org_id)
             if report_type == ReportType.COMPLIANCE
-            else asyncio.coroutine(lambda: [])(),
+            else _noop(),
         )
 
         health_score = self._compute_health(severity_counts, len(assets))

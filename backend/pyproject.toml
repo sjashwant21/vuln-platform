@@ -28,9 +28,9 @@ dependencies = [
     "bcrypt==4.1.3",
     "pyotp==2.9.0",
     "cryptography==42.0.7",
-    # Cache / Queue
-    "redis==5.0.4",
-    "celery[redis]==5.3.6",
+    # Cache / Queue (disabled on Vercel serverless — no Redis/worker support)
+    # "redis==5.0.4",
+    # "celery[redis]==5.3.6",
     # HTTP client
     "httpx==0.27.0",
     # Logging
@@ -45,6 +45,8 @@ dependencies = [
     # Report generation
     "python-docx==1.1.2",
     "jinja2==3.1.4",
+    # xhtml2pdf: pure-Python HTML→PDF (replaces WeasyPrint which requires C libs)
+    "xhtml2pdf==0.2.16",
     "matplotlib==3.9.0",
 ]
 

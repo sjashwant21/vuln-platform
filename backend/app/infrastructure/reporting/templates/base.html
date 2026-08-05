@@ -2,120 +2,114 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ report_data.org_name }} — {{ report_data.report_type.value|title }} Report</title>
 <style>
   /* ── Reset & base ── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   @page {
     size: A4;
     margin: 15mm 18mm 20mm 18mm;
-    @bottom-center {
-      content: "{{ report_data.org_name }} | Confidential | Page " counter(page) " of " counter(pages);
-      font-size: 8px; color: #9CA3AF;
-    }
   }
-  body { font-family: "DejaVu Sans", "Helvetica Neue", Arial, sans-serif;
+  body { font-family: Helvetica, Arial, sans-serif;
          font-size: 10pt; color: #111827; background: white; line-height: 1.5; }
-  /* ── Colour tokens ── */
-  :root {
-    --critical: #DC2626; --high: #EA580C; --medium: #D97706;
-    --low: #2563EB;      --info: #6B7280; --ok: #16A34A;
-    --accent: #4F46E5;   --bg: #F9FAFB;  --border: #E5E7EB;
-  }
+
   /* ── Typography ── */
-  h1 { font-size: 22pt; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
-  h2 { font-size: 14pt; font-weight: 700; color: #1F2937;
-       border-bottom: 2px solid var(--accent); padding-bottom: 4px;
+  h1 { font-size: 22pt; font-weight: bold; color: #4F46E5; margin-bottom: 6px; }
+  h2 { font-size: 14pt; font-weight: bold; color: #1F2937;
+       border-bottom: 2px solid #4F46E5; padding-bottom: 4px;
        margin: 24px 0 12px; page-break-after: avoid; }
-  h3 { font-size: 11pt; font-weight: 600; color: #374151; margin: 16px 0 6px; }
+  h3 { font-size: 11pt; font-weight: bold; color: #374151; margin: 16px 0 6px; }
   p  { margin-bottom: 8px; }
+
   /* ── Page breaks ── */
   .page-break { page-break-before: always; }
   .no-break   { page-break-inside: avoid; }
+
   /* ── Cover page ── */
-  .cover {
-    display: flex; flex-direction: column; justify-content: center;
-    min-height: 240mm; padding: 20mm 0;
-  }
+  .cover { padding: 20mm 0; min-height: 200px; }
   .cover-logo { font-size: 9pt; color: #6B7280; letter-spacing: 2px;
                 text-transform: uppercase; margin-bottom: 32px; }
-  .cover-type { font-size: 12pt; color: var(--accent); font-weight: 600;
+  .cover-type { font-size: 12pt; color: #4F46E5; font-weight: bold;
                 text-transform: uppercase; letter-spacing: 3px; margin-bottom: 12px; }
   .cover-meta { margin-top: 32px; color: #6B7280; font-size: 9pt; line-height: 2; }
-  .cover-divider { width: 60px; height: 4px; background: var(--accent);
-                   margin: 16px 0; border-radius: 2px; }
-  /* ── Scorecard ── */
-  .scorecard { display: flex; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
-  .score-card {
-    flex: 1; min-width: 100px; padding: 12px 16px;
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 8px; text-align: center;
-  }
-  .score-card .val { font-size: 22pt; font-weight: 700; line-height: 1; }
+  .cover-divider { width: 60px; height: 4px; background: #4F46E5;
+                   margin: 16px 0; }
+
+  /* ── Scorecard — using table layout for xhtml2pdf compatibility ── */
+  .scorecard { width: 100%; margin: 16px 0; }
+  .scorecard-table { width: 100%; border-collapse: collapse; }
+  .scorecard-table td { padding: 12px 8px; text-align: center;
+    background: #F9FAFB; border: 1px solid #E5E7EB; }
+  .score-card { padding: 12px 16px; background: #F9FAFB; border: 1px solid #E5E7EB;
+                text-align: center; display: block; margin: 4px; }
+  .score-card .val { font-size: 22pt; font-weight: bold; line-height: 1; }
   .score-card .lbl { font-size: 8pt; color: #6B7280; margin-top: 3px; }
-  .val-critical { color: var(--critical); }
-  .val-high     { color: var(--high); }
-  .val-medium   { color: var(--medium); }
-  .val-low      { color: var(--low); }
-  .val-ok       { color: var(--ok); }
-  .val-accent   { color: var(--accent); }
+  .val-critical { color: #DC2626; }
+  .val-high     { color: #EA580C; }
+  .val-medium   { color: #D97706; }
+  .val-low      { color: #2563EB; }
+  .val-ok       { color: #16A34A; }
+  .val-accent   { color: #4F46E5; }
+
   /* ── Tables ── */
   table { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 12px 0; }
-  th { background: #F3F4F6; font-weight: 600; text-align: left;
-       padding: 7px 10px; border-bottom: 2px solid var(--border); color: #374151; }
+  th { background: #F3F4F6; font-weight: bold; text-align: left;
+       padding: 7px 10px; border-bottom: 2px solid #E5E7EB; color: #374151; }
   td { padding: 6px 10px; border-bottom: 1px solid #F3F4F6; vertical-align: top; }
-  tr:hover td { background: #FAFAFA; }
+
   /* ── Severity badges ── */
   .badge {
-    display: inline-block; padding: 2px 8px; border-radius: 12px;
-    font-size: 8pt; font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
+    display: inline; padding: 2px 8px;
+    font-size: 8pt; font-weight: bold; text-transform: uppercase;
   }
-  .badge-critical { background: #FEE2E2; color: var(--critical); }
-  .badge-high     { background: #FFEDD5; color: var(--high); }
+  .badge-critical { background: #FEE2E2; color: #DC2626; }
+  .badge-high     { background: #FFEDD5; color: #EA580C; }
   .badge-medium   { background: #FEF3C7; color: #92400E; }
   .badge-low      { background: #DBEAFE; color: #1E40AF; }
-  .badge-info     { background: #F3F4F6; color: var(--info); }
+  .badge-info     { background: #F3F4F6; color: #6B7280; }
   .badge-ok       { background: #DCFCE7; color: #15803D; }
   .badge-partial  { background: #FEF3C7; color: #92400E; }
+
   /* ── Charts ── */
-  .chart-row { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
-  .chart-box { flex: 1; min-width: 260px; border: 1px solid var(--border);
-               border-radius: 8px; padding: 12px; background: white; }
+  .chart-row { width: 100%; margin: 16px 0; }
+  .chart-box { border: 1px solid #E5E7EB; padding: 12px; background: white;
+               margin: 8px 0; }
   .chart-box svg { width: 100%; height: auto; display: block; }
+
   /* ── Info boxes ── */
   .info-box {
-    background: var(--bg); border-left: 4px solid var(--accent);
-    padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0;
+    background: #F9FAFB; border-left: 4px solid #4F46E5;
+    padding: 12px 16px; margin: 12px 0;
   }
-  .warn-box  { border-left-color: var(--high); }
-  .crit-box  { border-left-color: var(--critical); }
-  .ok-box    { border-left-color: var(--ok); }
+  .warn-box  { border-left-color: #EA580C; }
+  .crit-box  { border-left-color: #DC2626; }
+  .ok-box    { border-left-color: #16A34A; }
+
   /* ── Recommendation cards ── */
   .rec-card {
-    border: 1px solid var(--border); border-radius: 8px;
+    border: 1px solid #E5E7EB;
     padding: 12px 16px; margin: 8px 0; page-break-inside: avoid;
   }
-  .rec-card .rec-header { display: flex; align-items: center; gap: 10px;
-                           margin-bottom: 6px; }
-  .rec-num { background: var(--accent); color: white; width: 22px; height: 22px;
-             border-radius: 50%; display: flex; align-items: center;
-             justify-content: center; font-size: 9pt; font-weight: 700;
-             flex-shrink: 0; }
-  .effort-immediate  { color: var(--critical); font-weight: 600; font-size: 8pt; }
-  .effort-short_term { color: var(--high);     font-weight: 600; font-size: 8pt; }
-  .effort-long_term  { color: var(--medium);   font-weight: 600; font-size: 8pt; }
+  .rec-header { margin-bottom: 6px; }
+  .rec-num { background: #4F46E5; color: white; width: 22px; height: 22px;
+             display: inline; padding: 2px 6px;
+             font-size: 9pt; font-weight: bold; }
+  .effort-immediate  { color: #DC2626; font-weight: bold; font-size: 8pt; }
+  .effort-short_term { color: #EA580C; font-weight: bold; font-size: 8pt; }
+  .effort-long_term  { color: #D97706; font-weight: bold; font-size: 8pt; }
+
   /* ── Footer note ── */
   .confidential-banner {
     background: #1F2937; color: white; padding: 8px 16px;
     text-align: center; font-size: 8pt; letter-spacing: 2px;
     text-transform: uppercase; margin-bottom: 16px;
   }
+
   /* ── Compliance ── */
-  .compliance-pct { font-size: 16pt; font-weight: 700; }
-  .pct-ok   { color: var(--ok); }
-  .pct-warn { color: var(--medium); }
-  .pct-fail { color: var(--critical); }
+  .compliance-pct { font-size: 16pt; font-weight: bold; }
+  .pct-ok   { color: #16A34A; }
+  .pct-warn { color: #D97706; }
+  .pct-fail { color: #DC2626; }
 </style>
 </head>
 <body>
@@ -137,7 +131,7 @@
   </div>
 </div>
 
-<div class="confidential-banner">⚠ Confidential — For Internal Use Only ⚠</div>
+<div class="confidential-banner">Confidential — For Internal Use Only</div>
 
 {# ── Body content injected by child templates ── #}
 {% block content %}{% endblock %}

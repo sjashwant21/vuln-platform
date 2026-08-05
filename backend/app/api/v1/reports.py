@@ -88,6 +88,19 @@ async def generate_report(
             ai_recommendations=body.ai_recommendations,
             management_summary=body.management_summary,
         )
+    except (OSError, ImportError, ModuleNotFoundError) as exc:
+        logger.error("report_dependency_error", org_id=current_user.org_id, error=str(exc), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Report generation failed — missing dependency: {exc}",
+        ) from exc
+    except RuntimeError as exc:
+        # xhtml2pdf raises RuntimeError on template/CSS parse failures
+        logger.error("report_runtime_error", org_id=current_user.org_id, error=str(exc), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"PDF rendering failed: {exc}",
+        ) from exc
     except Exception as exc:
         logger.error(
             "report_generation_failed",

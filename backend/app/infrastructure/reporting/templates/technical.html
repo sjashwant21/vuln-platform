@@ -6,19 +6,25 @@
 
 {# ── Asset inventory ── #}
 <h2>Asset Inventory</h2>
-<div class="chart-row no-break">
-  <div class="chart-box" style="flex:2">{{ charts.asset_risk|safe }}</div>
-  <div class="chart-box" style="flex:1">{{ charts.severity_donut|safe }}</div>
-</div>
+<table style="width:100%; border:none; margin:0; padding:0; border-collapse:collapse;" class="no-break">
+  <tr>
+    <td style="width:66%; border:none; padding-right:10px; vertical-align:top;">
+      <div class="chart-box">{{ charts.asset_risk|safe }}</div>
+    </td>
+    <td style="width:34%; border:none; padding-left:10px; vertical-align:top;">
+      <div class="chart-box">{{ charts.severity_donut|safe }}</div>
+    </td>
+  </tr>
+</table>
 <table>
   <thead>
     <tr>
       <th>Host</th><th>IP</th><th>OS</th><th>Type</th>
       <th>Criticality</th><th>Ports</th>
-      <th style="color:var(--critical)">C</th>
-      <th style="color:var(--high)">H</th>
-      <th style="color:var(--medium)">M</th>
-      <th style="color:var(--low)">L</th>
+      <th style="color:#DC2626">C</th>
+      <th style="color:#EA580C">H</th>
+      <th style="color:#D97706">M</th>
+      <th style="color:#2563EB">L</th>
       <th>Risk</th>
     </tr>
   </thead>
@@ -31,10 +37,10 @@
       <td style="font-size:8pt">{{ a.asset_type }}</td>
       <td><span class="badge badge-{{ a.criticality if a.criticality in ['critical','high','medium','low'] else 'info' }}">{{ a.criticality }}</span></td>
       <td style="text-align:center">{{ a.open_ports }}</td>
-      <td style="text-align:center;color:var(--critical);font-weight:{% if a.vuln_critical > 0 %}700{% else %}400{% endif %}">{{ a.vuln_critical }}</td>
-      <td style="text-align:center;color:var(--high)">{{ a.vuln_high }}</td>
-      <td style="text-align:center;color:var(--medium)">{{ a.vuln_medium }}</td>
-      <td style="text-align:center;color:var(--low)">{{ a.vuln_low }}</td>
+      <td style="text-align:center;color:#DC2626;font-weight:{% if a.vuln_critical > 0 %}700{% else %}400{% endif %}">{{ a.vuln_critical }}</td>
+      <td style="text-align:center;color:#EA580C">{{ a.vuln_high }}</td>
+      <td style="text-align:center;color:#D97706">{{ a.vuln_medium }}</td>
+      <td style="text-align:center;color:#2563EB">{{ a.vuln_low }}</td>
       <td style="text-align:center"><strong>{{ "%.1f"|format(a.risk_score) }}</strong></td>
     </tr>
     {% endfor %}
@@ -94,10 +100,10 @@
     {% for p in report_data.risk_trend %}
     <tr>
       <td>{{ p.date.strftime('%Y-%m-%d') }}</td>
-      <td style="color:var(--critical)"><strong>{{ p.critical }}</strong></td>
-      <td style="color:var(--high)">{{ p.high }}</td>
-      <td style="color:var(--medium)">{{ p.medium }}</td>
-      <td style="color:var(--low)">{{ p.low }}</td>
+      <td style="color:#DC2626"><strong>{{ p.critical }}</strong></td>
+      <td style="color:#EA580C">{{ p.high }}</td>
+      <td style="color:#D97706">{{ p.medium }}</td>
+      <td style="color:#2563EB">{{ p.low }}</td>
       <td>{{ p.total }}</td>
       <td>{{ p.score }}</td>
     </tr>

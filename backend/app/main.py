@@ -24,7 +24,7 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from app.api.limiter import limiter
 from app.api.middleware.request_context import RequestContextMiddleware
-from app.api.v1 import analysis, auth, health, intelligence, organizations, reports, scans, users
+from app.api.v1 import analysis, assets, auth, dashboard, health, intelligence, organizations, reports, scans, users, vulnerabilities
 from app.config import get_settings
 from app.domain.exceptions import (
     AuthenticationError,
@@ -149,7 +149,7 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
-        expose_headers=["X-Request-ID"],
+        expose_headers=["X-Request-ID", "Content-Disposition", "X-Report-Filename", "X-Report-Size"],
     )
     app.add_middleware(RequestContextMiddleware)
 
@@ -243,6 +243,9 @@ def create_app() -> FastAPI:
     app.include_router(intelligence.router, prefix=API_PREFIX)  # /v1/intelligence/*
     app.include_router(reports.router, prefix=API_PREFIX)  # /v1/reports/*
     app.include_router(scans.router, prefix=API_PREFIX)  # /v1/scans/*
+    app.include_router(assets.router, prefix=API_PREFIX)  # /v1/assets/*
+    app.include_router(vulnerabilities.router, prefix=API_PREFIX)  # /v1/vulnerabilities/*
+    app.include_router(dashboard.router, prefix=API_PREFIX)  # /v1/dashboard/*
 
     logger.info("application_ready", prefix=API_PREFIX)
     return app
