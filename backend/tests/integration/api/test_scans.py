@@ -42,5 +42,6 @@ async def test_list_scan_jobs(
     assert resp.status_code == 200
 
     data = resp.json()
-    assert len(data) >= 1
-    assert data[0]["target_ips"] == ["10.0.0.1"]
+    items = data.get("items", data) if isinstance(data, dict) else data
+    assert len(items) >= 1
+    assert items[0]["target_ips"] == ["10.0.0.1"]
