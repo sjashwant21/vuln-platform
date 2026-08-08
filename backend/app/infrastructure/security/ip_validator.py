@@ -58,11 +58,11 @@ def validate_scan_target(value: str) -> str:
 
     try:
         network = ipaddress.ip_network(value, strict=False)
-    except ValueError:
+    except ValueError as err:
         raise ValueError(
             f"'{value}' is not a valid IP address or CIDR block "
             f"(e.g. '93.184.216.34' or '203.0.113.0/24')"
-        )
+        ) from err
 
     # Block private / reserved ranges
     if network.is_private:

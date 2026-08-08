@@ -13,16 +13,15 @@ All business logic, password policy, and token management live in AuthService.
 import ipaddress
 
 import structlog
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Request, Response, status
 
 from app.api.limiter import limiter
 from app.api.schemas.auth_schemas import (
+    AccessTokenResponse,
     ChangePasswordRequest,
     LoginRequest,
-    LogoutRequest,
     MessageResponse,
     OrganizationResponse,
-    RefreshRequest,
     RegisterRequest,
     RegisterResponse,
     TokenResponse,
@@ -225,10 +224,9 @@ async def login(
     request: Request,
     response: Response,
 ) -> AccessTokenResponse:
-    from fastapi import Response
-    
+
     await _check_account_lockout(body.email)
-    
+
     try:
         tokens = await service.login(
             LoginInput(
@@ -277,11 +275,11 @@ async def refresh_token(
     response: Response,
 ) -> AccessTokenResponse:
     from app.domain.exceptions import AuthenticationError
-    
+
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
         raise AuthenticationError("Refresh token missing from cookies")
-        
+
     tokens = await service.refresh(
         RefreshInput(
             refresh_token=refresh_token,
@@ -289,7 +287,7 @@ async def refresh_token(
             user_agent=request.headers.get("User-Agent"),
         )
     )
-    
+
     # Set new refresh token as HttpOnly cookie
     from app.config import get_settings
     cfg = get_settings()
@@ -302,7 +300,7 @@ async def refresh_token(
         max_age=cfg.jwt_refresh_token_expire_days * 24 * 3600,
         path="/v1/auth",
     )
-    
+
     return AccessTokenResponse(
         access_token=tokens.access_token,
     )
@@ -328,7 +326,7 @@ async def logout(
             refresh_token=refresh_token,
             current_user=current_user,
         )
-    
+
     response.delete_cookie(key="refresh_token", path="/v1/auth")
     return MessageResponse(message="Logged out successfully")
 

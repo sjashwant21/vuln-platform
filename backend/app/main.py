@@ -104,8 +104,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         import os
 
-        from alembic import command as alembic_command
         from alembic.config import Config as AlembicConfig
+
+        from alembic import command as alembic_command
 
         alembic_cfg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "alembic.ini")
         logger.info("running_migrations", config=alembic_cfg_path)
@@ -212,9 +213,7 @@ def create_app() -> FastAPI:
             if origin and origin not in cfg.cors_origins:
                 # Only block cross-origin non-safe methods.
                 # Requests without an Origin header (curl, server-to-server) are allowed.
-                from fastapi.responses import JSONResponse as JR
-
-                return JR(
+                return JSONResponse(
                     status_code=403,
                     content={"error": "Forbidden", "detail": "Origin not allowed"},
                 )

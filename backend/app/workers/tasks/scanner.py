@@ -94,7 +94,6 @@ async def _run_nmap_scan_async(job_id: str, org_id: str) -> None:
             logger.info("running_nmap", target_count=len(sanitized_ips))
 
             import subprocess
-            import sys
 
             process = subprocess.run(
                 cmd,
@@ -108,13 +107,13 @@ async def _run_nmap_scan_async(job_id: str, org_id: str) -> None:
 
             # Parse XML using defusedxml — prevents XXE and entity-expansion attacks
             try:
-                import defusedxml.ElementTree as ET
+                import defusedxml.ElementTree as DefusedET
             except ImportError:
                 # Fallback: stdlib ET is safe for nmap output (no external entities)
-                import xml.etree.ElementTree as ET  # noqa: S405
+                import xml.etree.ElementTree as DefusedET  # noqa: S405
 
             xml_output = process.stdout
-            root = ET.fromstring(xml_output)
+            root = DefusedET.fromstring(xml_output)  # noqa: S314
 
             findings_created = 0
             for host in root.findall("host"):

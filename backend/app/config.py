@@ -59,7 +59,7 @@ class Settings(BaseSettings):
                 origins = [o.strip() for o in v.split(",") if o.strip()]
         else:
             origins = v
-            
+
         for origin in origins:
             if origin == "*":
                 raise ValueError("Wildcard CORS origin is not allowed with credentials=True")
