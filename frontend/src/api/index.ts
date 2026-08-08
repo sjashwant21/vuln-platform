@@ -10,7 +10,8 @@ export const authApi = {
     apiClient.post<AuthTokens>('/auth/login', { email, password }).then(r => r.data),
   register: (p: { email: string; password: string; full_name: string; organization_name: string; organization_slug: string }) =>
     apiClient.post<{ user: User; organization: Organization; tokens: AuthTokens }>('/auth/register', p).then(r => r.data),
-  logout: (refresh_token: string) => apiClient.post('/auth/logout', { refresh_token }),
+  logout: () => apiClient.post('/auth/logout'),
+  refresh: () => apiClient.post<{ access_token: string }>('/auth/refresh').then(r => r.data),
   me: () => apiClient.get<{ user_id: string; org_id: string; role: string; email: string }>('/auth/me').then(r => r.data),
   changePassword: (current_password: string, new_password: string) =>
     apiClient.post('/auth/change-password', { current_password, new_password }).then(r => r.data),

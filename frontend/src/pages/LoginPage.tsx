@@ -18,13 +18,11 @@ export function LoginPage() {
   const login = useMutation({
     mutationFn: async () => {
       const tokens = await authApi.login(email, password)
-      localStorage.setItem('access_token',  tokens.access_token)
-      localStorage.setItem('refresh_token', tokens.refresh_token)
       const [user, org] = await Promise.all([usersApi.me(), orgApi.me()])
       return { user, org, tokens }
     },
     onSuccess: ({ user, org, tokens }) => {
-      setAuth(user, org, tokens)
+      setAuth(user, org, tokens.access_token)
       navigate('/dashboard')
     },
     onError: () => setError('Invalid email or password'),

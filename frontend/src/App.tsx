@@ -66,18 +66,24 @@ function AppBootstrap() {
   const [booted, setBooted] = useState(false)
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
-    if (!token) { logout(); setBooted(true); return }
-    Promise.all([usersApi.me(), orgApi.me()])
-      .then(([user, org]) => {
-        setAuth(user, org, {
-          access_token:  localStorage.getItem('access_token')  ?? '',
-          refresh_token: localStorage.getItem('refresh_token') ?? '',
-          token_type: 'bearer', expires_in: 900,
+    // Attempt silent refresh via secure HttpOnly cookie
+    import('@/api').then(({ authApi, usersApi, orgApi }) => {
+      authApi.refresh()
+        .then((data) => {
+          // Token acquired successfully; fetch user details
+          Promise.all([usersApi.me(), orgApi.me()])
+            .then(([user, org]) => {
+              setAuth(user, org, data.access_token)
+            })
+            .catch(() => logout())
+            .finally(() => setBooted(true))
         })
-      })
-      .catch(() => logout())
-      .finally(() => setBooted(true))
+        .catch(() => {
+          // No valid session cookie, user must log in
+          logout()
+          setBooted(true)
+        })
+    })
   }, [])
 
   if (!booted) return <PageLoader />

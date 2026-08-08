@@ -32,10 +32,7 @@ export function Sidebar() {
   const { dark, toggle } = useDarkMode()
 
   const handleLogout = async () => {
-    const refreshToken = localStorage.getItem('refresh_token')
-    if (refreshToken) {
-      try { await import('@/api').then(m => m.authApi.logout(refreshToken)) } catch {}
-    }
+    try { await import('@/api').then(m => m.authApi.logout()) } catch {}
     logout()
     navigate('/login')
   }
