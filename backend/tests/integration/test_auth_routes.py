@@ -162,13 +162,14 @@ class TestRefresh:
 
         resp = await client.post(
             "/v1/auth/refresh",
-            json={"refresh_token": old_refresh},
+            cookies={"refresh_token": old_refresh},
         )
         assert resp.status_code == 200
         body = resp.json()
         # New tokens issued
         assert body["access_token"] != old_access
-        assert body["refresh_token"] != old_refresh
+        assert "refresh_token" in resp.cookies
+        assert resp.cookies["refresh_token"] != old_refresh
 
     @pytest.mark.asyncio
     async def test_used_refresh_token_returns_401(self, client: AsyncClient, registered_user: dict):
@@ -176,9 +177,9 @@ class TestRefresh:
         old_refresh = registered_user["tokens"]["refresh_token"]
 
         # Use it once
-        await client.post("/v1/auth/refresh", json={"refresh_token": old_refresh})
+        await client.post("/v1/auth/refresh", cookies={"refresh_token": old_refresh})
         # Try to reuse
-        resp = await client.post("/v1/auth/refresh", json={"refresh_token": old_refresh})
+        resp = await client.post("/v1/auth/refresh", cookies={"refresh_token": old_refresh})
 
         assert resp.status_code == 401
 
@@ -186,7 +187,7 @@ class TestRefresh:
     async def test_bogus_refresh_token_returns_401(self, client: AsyncClient):
         resp = await client.post(
             "/v1/auth/refresh",
-            json={"refresh_token": "this-is-not-a-real-token"},
+            cookies={"refresh_token": "this-is-not-a-real-token"},
         )
         assert resp.status_code == 401
 

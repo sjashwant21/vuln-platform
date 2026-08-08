@@ -42,8 +42,8 @@ class ScanService:
         try:
             from app.workers.tasks.scanner import run_nmap_scan_task
 
-            # Pass the job_id. Celery worker will fetch the details from the DB.
-            task = run_nmap_scan_task.delay(job_id=job.id)
+            # Pass the job_id and org_id. Celery worker will fetch the details from the DB.
+            task = run_nmap_scan_task.delay(job_id=job.id, org_id=org_id)
 
             # Update job with celery task ID
             await self._scan_repo.update_job_status(

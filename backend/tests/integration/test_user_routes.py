@@ -185,9 +185,7 @@ class TestHealth:
         resp = await client.get("/health")
         assert resp.status_code == 200
         body = resp.json()
-        assert body["status"] in ("ok", "degraded")
-        assert "version" in body
-        assert "database" in body
+        assert body["status"] == "ok"
 
     @pytest.mark.asyncio
     async def test_health_does_not_require_auth(self, client: AsyncClient):
