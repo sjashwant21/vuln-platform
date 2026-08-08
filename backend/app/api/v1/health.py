@@ -11,10 +11,11 @@ from __future__ import annotations
 from typing import Literal
 
 import structlog
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import text
 
+from app.dependencies import get_current_user
 from app.infrastructure.database.connection import get_engine
 
 logger = structlog.get_logger(__name__)
@@ -22,7 +23,11 @@ logger = structlog.get_logger(__name__)
 router = APIRouter(tags=["Health"])
 
 
-class HealthResponse(BaseModel):
+class MinimalHealthResponse(BaseModel):
+    status: Literal["ok"]
+
+
+class DetailedHealthResponse(BaseModel):
     status: Literal["ok", "degraded", "down"]
     version: str
     database: Literal["ok", "error"]
@@ -30,11 +35,22 @@ class HealthResponse(BaseModel):
 
 @router.get(
     "/health",
-    response_model=HealthResponse,
-    summary="System health check",
-    include_in_schema=True,
+    response_model=MinimalHealthResponse,
+    summary="Minimal system health check (public)",
 )
-async def health_check() -> HealthResponse:
+async def health_check() -> MinimalHealthResponse:
+    """Minimal health check for load balancers. Does not leak info."""
+    return MinimalHealthResponse(status="ok")
+
+
+@router.get(
+    "/health/detailed",
+    response_model=DetailedHealthResponse,
+    summary="Detailed system health check (internal)",
+    dependencies=[Depends(get_current_user)],
+)
+async def health_detailed() -> DetailedHealthResponse:
+    """Detailed health check revealing DB status and version info. Requires auth."""
     from app.config import get_settings
 
     cfg = get_settings()
@@ -49,7 +65,7 @@ async def health_check() -> HealthResponse:
 
     overall: Literal["ok", "degraded", "down"] = "ok" if db_status == "ok" else "degraded"
 
-    return HealthResponse(
+    return DetailedHealthResponse(
         status=overall,
         version=cfg.app_version,
         database=db_status,

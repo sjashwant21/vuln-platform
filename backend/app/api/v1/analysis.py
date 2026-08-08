@@ -187,20 +187,23 @@ async def analyse(
     try:
         analysis = await svc.analyse(request)  # type: ignore[union-attr]
     except LLMRateLimitError as exc:
+        logger.warning("llm_rate_limit_error", error=str(exc))
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"LLM provider rate limit reached: {exc}",
-        ) from exc
+            detail="Analysis rate limit reached. Please try again later.",
+        ) from None
     except LLMTimeoutError as exc:
+        logger.warning("llm_timeout_error", error=str(exc))
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail=f"LLM provider timed out: {exc}",
-        ) from exc
+            detail="AI analysis timed out. Please try again with fewer vulnerabilities.",
+        ) from None
     except LLMProviderError as exc:
+        logger.error("llm_provider_error", error=str(exc))
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"LLM provider error: {exc}",
-        ) from exc
+            detail="Failed to communicate with AI provider.",
+        ) from None
 
     return analysis_to_response(analysis)
 

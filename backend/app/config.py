@@ -39,9 +39,10 @@ class Settings(BaseSettings):
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _parse_cors(cls, v: str | list[str]) -> list[str]:
+        origins = []
         if isinstance(v, list):
-            return [o.strip() for o in v if o.strip()]
-        if isinstance(v, str):
+            origins = [o.strip() for o in v if o.strip()]
+        elif isinstance(v, str):
             v = v.strip()
             # Try JSON array format first: ["url1","url2"]
             if v.startswith("["):
@@ -49,13 +50,20 @@ class Settings(BaseSettings):
                     import json
 
                     parsed = json.loads(v)
-                    return [o.strip() for o in parsed if o.strip()]
+                    origins = [o.strip() for o in parsed if o.strip()]
                 except Exception:  # noqa: S110
                     # Fall back to comma-separated if JSON parsing fails
                     pass
-            # Fall back to comma-separated
-            return [o.strip() for o in v.split(",") if o.strip()]
-        return v
+            else:
+                # Fall back to comma-separated
+                origins = [o.strip() for o in v.split(",") if o.strip()]
+        else:
+            origins = v
+            
+        for origin in origins:
+            if origin == "*":
+                raise ValueError("Wildcard CORS origin is not allowed with credentials=True")
+        return origins
 
     # -- JWT ---------------------------------------------------
     jwt_secret_key: str = Field(..., min_length=32)
@@ -84,7 +92,7 @@ class Settings(BaseSettings):
     celery_result_backend: str = Field(default="redis://localhost:6379/2")
 
     # -- Security ----------------------------------------------
-    bcrypt_rounds: int = Field(default=12, ge=10, le=14)
+    bcrypt_rounds: int = Field(default=13, ge=12)
     mfa_issuer: str = "VulnAssessPlatform"
     rate_limit_per_minute: int = Field(default=60, ge=1)
 

@@ -56,8 +56,14 @@ class ChangePasswordRequest(BaseModel):
 
 # ── Responses ──────────────────────────────────────────────────
 
+class AccessTokenResponse(BaseModel):
+    access_token: str = Field(..., description="JWT access token (15-minute lifetime)")
+    token_type: str = Field(default="bearer")
+    expires_in: int = Field(default=900, description="Access token lifetime in seconds")
+
 
 class TokenResponse(BaseModel):
+    # Used only in register response when not using cookies yet
     access_token: str = Field(..., description="JWT access token (15-minute lifetime)")
     refresh_token: str = Field(..., description="Opaque refresh token (7-day lifetime)")
     token_type: str = Field(default="bearer")

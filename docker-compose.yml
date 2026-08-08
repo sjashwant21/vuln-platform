@@ -59,6 +59,13 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "1.0"
+        reservations:
+          memory: 256m
     env_file: .env
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
@@ -87,6 +94,15 @@ services:
       context: ./backend
       dockerfile: Dockerfile.worker
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "2.0"
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 2048
     env_file: .env
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}

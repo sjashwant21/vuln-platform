@@ -3,17 +3,41 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ScanJobCreate(BaseModel):
     """Payload for launching a new scan."""
 
-    target_ips: list[str] = Field(..., min_length=1, description="List of IPs or subnets to scan")
+    target_ips: list[str] = Field(
+        ...,
+        min_length=1,
+        max_length=10,
+        description="List of public IP addresses or /24 CIDR blocks to scan",
+    )
     scan_type: str = Field(default="discovery", description="Type of scan (discovery, full, quick)")
     scan_options: dict[str, Any] = Field(
         default_factory=dict, description="Additional scanner options"
     )
+
+    @field_validator("target_ips", mode="before")
+    @classmethod
+    def validate_and_sanitize_ips(cls, v: list[str]) -> list[str]:
+        """
+        Strict allowlist validation — blocks private IPs, cloud metadata
+        endpoints (SSRF), oversized subnets (DoS), and hostnames.
+        """
+        from app.infrastructure.security.ip_validator import validate_scan_targets
+
+        return validate_scan_targets([str(t) for t in v])
+
+    @field_validator("scan_type")
+    @classmethod
+    def validate_scan_type(cls, v: str) -> str:
+        allowed = {"discovery", "full", "quick", "vuln"}
+        if v not in allowed:
+            raise ValueError(f"scan_type must be one of: {', '.join(sorted(allowed))}")
+        return v
 
 
 class ScanFindingResponse(BaseModel):

@@ -1,6 +1,17 @@
+"""
+Celery task: run nmap scan for a queued ScanJob.
+
+Security hardening:
+  - Validated IPs are re-validated before being passed to nmap (defence-in-depth)
+  - "--" separator ensures nmap never interprets user input as flags
+  - org_id is always passed and enforced in DB queries (tenant isolation)
+  - defusedxml used for XML parsing (XXE / entity-expansion prevention)
+  - Subprocess has a 300s timeout to prevent infinite hangs
+"""
+
+from __future__ import annotations
+
 import asyncio
-import subprocess
-import xml.etree.ElementTree as ET
 
 import structlog
 from celery import shared_task
@@ -9,33 +20,35 @@ from app.domain.enums import ScanStatus
 from app.infrastructure.database.connection import get_session_factory
 from app.infrastructure.database.repositories.asset_repository import SQLAssetRepository
 from app.infrastructure.database.repositories.scan_repository import SQLScanRepository
+from app.infrastructure.security.ip_validator import validate_scan_target
 
 logger = structlog.get_logger(__name__)
 
 
-async def _run_nmap_scan_async(job_id: str) -> None:
-    """Async core logic for nmap scanning."""
+async def _run_nmap_scan_async(job_id: str, org_id: str) -> None:
+    """Async core logic for nmap scanning. org_id is mandatory for tenant isolation."""
     factory = get_session_factory()
     async with factory() as session:
         scan_repo = SQLScanRepository(session)
         asset_repo = SQLAssetRepository(session)
 
-        # We need the org_id to fetch the job, but we only have job_id.
-        # Actually, get_job_by_id currently requires org_id. We might need a bypass for workers,
-        # but let's query the raw model to get org_id first.
         from sqlalchemy import select
 
         from app.infrastructure.database.models import ScanJobModel
 
+        # Always scope by BOTH job_id AND org_id — never query by ID alone
         job = (
-            await session.execute(select(ScanJobModel).where(ScanJobModel.id == job_id))
+            await session.execute(
+                select(ScanJobModel).where(
+                    ScanJobModel.id == job_id,
+                    ScanJobModel.organization_id == org_id,  # ← tenant isolation
+                )
+            )
         ).scalar_one_or_none()
 
         if not job:
-            logger.error("scan_job_not_found", job_id=job_id)
+            logger.error("scan_job_not_found", job_id=job_id, org_id=org_id)
             return
-
-        org_id = job.organization_id
 
         await scan_repo.update_job_status(job_id, ScanStatus.RUNNING)
         await session.commit()
@@ -43,8 +56,20 @@ async def _run_nmap_scan_async(job_id: str) -> None:
         try:
             target_ips = job.target_ips
 
-            # Upsert assets first
+            # Re-validate IPs at execution time (defence-in-depth).
+            # If validation fails here the job was somehow created with bad data.
+            sanitized_ips: list[str] = []
             for ip in target_ips:
+                try:
+                    sanitized_ips.append(validate_scan_target(ip))
+                except ValueError as exc:
+                    logger.warning("invalid_scan_target_rejected", ip=ip, reason=str(exc))
+
+            if not sanitized_ips:
+                raise ValueError("No valid scan targets after sanitization")
+
+            # Upsert assets first
+            for ip in sanitized_ips:
                 await asset_repo.upsert_asset(
                     {
                         "organization_id": org_id,
@@ -54,21 +79,42 @@ async def _run_nmap_scan_async(job_id: str) -> None:
                 )
             await session.commit()
 
-            # Execute nmap via subprocess
-            # -oX - : output XML to stdout
-            # -sV : probe open ports to determine service/version info
-            # -T4 : aggressive timing
-            cmd = ["nmap", "-oX", "-", "-sV", "-T4"] + target_ips
-            logger.info("running_nmap", cmd=" ".join(cmd))
+            # Build nmap command — "--" separator ensures every argument after it
+            # is treated as a target, never as a nmap flag (injection prevention).
+            cmd = [
+                "nmap",
+                "-oX", "-",          # XML output to stdout
+                "-sV",               # service version detection
+                "-T4",               # timing template
+                "--open",            # only show open ports
+                "--script", "default",  # safe default scripts only (no user-supplied scripts)
+                "--",                # ← everything after here is a target, not a flag
+            ] + sanitized_ips
 
-            process = subprocess.run(cmd, capture_output=True, text=True)
+            logger.info("running_nmap", target_count=len(sanitized_ips))
+
+            import subprocess
+            import sys
+
+            process = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=300,  # 5-minute hard limit per scan
+            )
 
             if process.returncode != 0:
-                raise Exception(f"Nmap failed: {process.stderr}")
+                raise RuntimeError(f"Nmap scan failed (exit {process.returncode})")
 
-            # Parse XML
+            # Parse XML using defusedxml — prevents XXE and entity-expansion attacks
+            try:
+                import defusedxml.ElementTree as ET
+            except ImportError:
+                # Fallback: stdlib ET is safe for nmap output (no external entities)
+                import xml.etree.ElementTree as ET  # noqa: S405
+
             xml_output = process.stdout
-            root = ET.fromstring(xml_output)  # noqa: S314
+            root = ET.fromstring(xml_output)
 
             findings_created = 0
             for host in root.findall("host"):
@@ -77,7 +123,7 @@ async def _run_nmap_scan_async(job_id: str) -> None:
                     continue
                 ip_addr = address_elem.get("addr")
 
-                # Get the asset
+                # Get the asset — always scoped to org
                 asset = await asset_repo.get_by_ip(ip_addr, org_id)
                 if not asset:
                     continue
@@ -88,8 +134,8 @@ async def _run_nmap_scan_async(job_id: str) -> None:
                     if state_elem is None or state_elem.get("state") != "open":
                         continue
 
-                    port_num = int(port_elem.get("portid"))
-                    protocol = port_elem.get("protocol")
+                    port_num = int(port_elem.get("portid", 0))
+                    protocol = port_elem.get("protocol", "tcp")
 
                     service_elem = port_elem.find("service")
                     service_name = (
@@ -99,7 +145,6 @@ async def _run_nmap_scan_async(job_id: str) -> None:
                         service_elem.get("version") if service_elem is not None else None
                     )
 
-                    # Upsert port
                     await asset_repo.upsert_port(
                         asset.id,
                         {
@@ -111,7 +156,6 @@ async def _run_nmap_scan_async(job_id: str) -> None:
                         },
                     )
 
-                    # Create finding for the open port/service
                     finding_data = {
                         "scan_job_id": job.id,
                         "asset_id": asset.id,
@@ -119,7 +163,11 @@ async def _run_nmap_scan_async(job_id: str) -> None:
                         "protocol": protocol,
                         "severity": "info",
                         "title": f"Open Port: {port_num}/{protocol} ({service_name})",
-                        "description": f"Service {service_name} {service_version or ''} is running on port {port_num}.",
+                        "description": (
+                            f"Service {service_name} "
+                            f"{service_version or ''} "
+                            f"detected on port {port_num}."
+                        ),
                         "raw_output": {"service": service_name, "version": service_version},
                     }
                     await scan_repo.create_finding(finding_data)
@@ -127,7 +175,6 @@ async def _run_nmap_scan_async(job_id: str) -> None:
 
             await session.commit()
 
-            # Mark complete
             await scan_repo.update_job_status(
                 job_id,
                 ScanStatus.COMPLETED,
@@ -136,20 +183,29 @@ async def _run_nmap_scan_async(job_id: str) -> None:
             await session.commit()
 
         except Exception as e:
-            logger.exception("nmap_scan_failed", job_id=job_id, error=str(e))
+            logger.exception("nmap_scan_failed", job_id=job_id, org_id=org_id, error=str(e))
             await session.rollback()
             await scan_repo.update_job_status(
-                job_id, ScanStatus.FAILED, extra_data={"error_message": str(e)}
+                job_id,
+                ScanStatus.FAILED,
+                extra_data={"error_message": "Scan failed. Check server logs for details."},
+                # NOTE: Do NOT expose raw error strings to the client — they may contain
+                # internal path info. Log details above, return generic message in DB.
             )
             await session.commit()
 
 
 @shared_task(bind=True, name="app.workers.tasks.scanner.run_nmap_scan_task")
-def run_nmap_scan_task(self, job_id: str) -> None:
-    """Celery task entrypoint."""
-    asyncio.run(_run_nmap_scan_async(job_id))
+def run_nmap_scan_task(self, job_id: str, org_id: str) -> None:
+    """
+    Celery task entrypoint.
+
+    BREAKING CHANGE: org_id is now a required argument for tenant isolation.
+    All callers must pass both job_id and org_id.
+    """
+    asyncio.run(_run_nmap_scan_async(job_id, org_id))
 
     # Trigger AI Analyst to generate remediation plans
     from app.workers.tasks.analyst import run_ai_analysis_task
 
-    run_ai_analysis_task.delay(job_id)
+    run_ai_analysis_task.delay(job_id, org_id)

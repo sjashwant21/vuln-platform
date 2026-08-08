@@ -100,26 +100,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     create_engine_and_factory(cfg)
 
     # ── Auto-migrate on startup (idempotent — safe to run on every cold start) ──
+    # Uses Alembic Python API directly — no subprocess, no os.environ leakage.
     try:
         import os
-        import subprocess
-        import sys
+
+        from alembic import command as alembic_command
+        from alembic.config import Config as AlembicConfig
 
         alembic_cfg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "alembic.ini")
         logger.info("running_migrations", config=alembic_cfg_path)
-        result = subprocess.run(
-            [sys.executable, "-m", "alembic", "-c", alembic_cfg_path, "upgrade", "head"],
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env={**os.environ, "DATABASE_URL": cfg.database_url},
-        )
-        if result.returncode == 0:
-            logger.info("migrations_complete", stdout=result.stdout[-500:] if result.stdout else "")
-        else:
-            logger.warning(
-                "migrations_failed", stderr=result.stderr[-500:] if result.stderr else ""
-            )
+
+        alembic_cfg = AlembicConfig(alembic_cfg_path)
+        # Override the DB URL from settings — avoids reading alembic.ini DB url at runtime
+        alembic_cfg.set_main_option("sqlalchemy.url", cfg.database_url_sync)
+        alembic_command.upgrade(alembic_cfg, "head")
+
+        logger.info("migrations_complete")
     except Exception as exc:
         logger.warning("migrations_error", error=str(exc))
 
@@ -165,7 +161,7 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(RequestContextMiddleware)
 
-    # ── Security headers ────────────────────────────────────────
+    # ── Security headers ────────────────────────────────────────────
     @app.middleware("http")
     async def security_headers(request: Request, call_next: object) -> JSONResponse:
         import inspect
@@ -174,14 +170,58 @@ def create_app() -> FastAPI:
             response = await call_next(request)  # type: ignore[arg-type]
         else:
             response = await call_next(request)  # type: ignore[arg-type, misc]
+
+        # Prevent MIME-type sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"
+        # Prevent clickjacking
         response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
+        # Referrer policy
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "geolocation=(), microphone=()"
+        # Permissions policy — disable unneeded browser features
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
+        )
+        # Content-Security-Policy — primary XSS defence (replaces X-XSS-Protection)
+        # Adjust connect-src if you add more API origins.
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: blob:; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'"
+        )
         if cfg.is_production:
-            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=63072000; includeSubDomains; preload"  # 2-year HSTS
+            )
         return response  # type: ignore[return-value]
+
+    # ── CSRF origin check ───────────────────────────────────────────
+    # Guards state-changing endpoints against CSRF when cookies are used.
+    # Browsers always send Origin/Referer; cross-origin JS cannot forge them.
+    @app.middleware("http")
+    async def csrf_origin_check(request: Request, call_next: object) -> JSONResponse:
+        import inspect
+
+        if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+            origin = request.headers.get("Origin")
+            if origin and origin not in cfg.cors_origins:
+                # Only block cross-origin non-safe methods.
+                # Requests without an Origin header (curl, server-to-server) are allowed.
+                from fastapi.responses import JSONResponse as JR
+
+                return JR(
+                    status_code=403,
+                    content={"error": "Forbidden", "detail": "Origin not allowed"},
+                )
+
+        if inspect.iscoroutinefunction(call_next):
+            return await call_next(request)  # type: ignore[arg-type, return-value]
+        return await call_next(request)  # type: ignore[arg-type, misc, return-value]
 
     # ── Exception handlers ─────────────────────────────────────
 
